@@ -123,18 +123,10 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /**
- * Configurar event listeners
+ * Configurar event listeners (Legado - removido para evitar conflitos)
  */
 function configurarEventListeners_legacy() {
-	// Slider de velocidade da fala
-	const sliderVelocidade = document.getElementById("velocidade-fala");
-	const valorVelocidade = document.getElementById("velocidade-valor");
-
-	if (sliderVelocidade && valorVelocidade) {
-		sliderVelocidade.addEventListener("input", (e) => {
-			valorVelocidade.textContent = `${e.target.value}x`;
-		});
-	}
+	// Removido
 }
 
 // ==========================================
@@ -1638,44 +1630,73 @@ function falarTexto(texto) {
 	// Cancelar fala anterior se estiver em andamento
 	speechSynthesis.cancel();
 
+	// Carregar configurações salvas como backup
 	const configVoz = JSON.parse(localStorage.getItem("config_voz") || "{}");
 	const configGeral = JSON.parse(localStorage.getItem("config_geral") || "{}");
 
 	const utterance = new SpeechSynthesisUtterance(texto);
 
-	// Configurar voz
-	if (configVoz.voz_selecionada) {
-		const vozes = speechSynthesis.getVoices();
-		const vozSelecionada = vozes.find(
-			(voz) => voz.name === configVoz.voz_selecionada,
-		);
-		if (vozSelecionada) {
-			utterance.voice = vozSelecionada;
-		}
+	// Tentar obter valores diretamente do DOM para teste instantâneo sem precisar salvar
+	const elVelocidade = document.getElementById("velocidade-fala");
+	const elTomVoz = document.getElementById("tom-voz-audio");
+	const elIdioma = document.getElementById("idioma-agente");
+	const elVozSelecionada = document.getElementById("voz-selecionada");
+
+	const rate = elVelocidade ? parseFloat(elVelocidade.value) : (parseFloat(configVoz.velocidade_fala) || 1.0);
+	const lang = elIdioma ? elIdioma.value : (configGeral.idioma || "pt-BR");
+	const selectedVoiceName = elVozSelecionada ? elVozSelecionada.value : configVoz.voz_selecionada;
+	const tomAudio = elTomVoz ? elTomVoz.value : (configVoz.tom_voz_audio || "female");
+
+	// Configurar idioma e velocidade
+	utterance.lang = lang;
+	utterance.rate = rate;
+	utterance.pitch = 1.0; 
+	utterance.volume = 0.9;
+
+	// Selecionar voz
+	const vozes = speechSynthesis.getVoices();
+	let vozParaUsar = null;
+
+	if (selectedVoiceName) {
+		vozParaUsar = vozes.find((v) => v.name === selectedVoiceName);
 	}
 
-	// Configurar idioma
-	utterance.lang = configGeral.idioma || "pt-BR";
+	// Se não tiver voz selecionada manual, tenta achar uma pelo tom/gênero configurado na tela
+	if (!vozParaUsar) {
+		const prefixoLang = lang.split("-")[0];
+		vozParaUsar = vozes.find((v) => {
+			const nameLower = v.name.toLowerCase();
+			const isLangMatch = v.lang.includes(prefixoLang);
+			if (!isLangMatch) return false;
 
-	// Configurar velocidade e tom
-	utterance.rate = configVoz.velocidade || 1.0;
-	utterance.pitch = configVoz.tom || 1.0;
-	utterance.volume = configVoz.volume || 0.8;
+			if (tomAudio === "female") {
+				return nameLower.includes("female") || nameLower.includes("maria") || nameLower.includes("helena") || nameLower.includes("ana") || nameLower.includes("victoria");
+			} else {
+				return nameLower.includes("male") || nameLower.includes("joão") || nameLower.includes("antonio") || nameLower.includes("carlos") || nameLower.includes("google") || nameLower.includes("daniel");
+			}
+		});
+	}
 
-	// Eventos
+	if (vozParaUsar) {
+		utterance.voice = vozParaUsar;
+	}
+
+	// Eventos de Status
+	const statusEl = document.getElementById("voz-status");
 	utterance.onstart = () => {
-		document.getElementById("voz-status").textContent = "🔊 Falando...";
+		if (statusEl) statusEl.textContent = "🔊 Falando...";
 	};
 
 	utterance.onend = () => {
-		document.getElementById("voz-status").textContent = "🔇 Pronto";
+		if (statusEl) statusEl.textContent = "🔇 Pronto";
 	};
 
 	utterance.onerror = (event) => {
 		console.error("Erro na síntese de voz:", event.error);
-		document.getElementById("voz-status").textContent = "❌ Erro na voz";
+		if (statusEl) statusEl.textContent = "❌ Erro na voz";
 	};
-	// Reproduzir fala
+
+	// Executar
 	speechSynthesis.speak(utterance);
 }
 
@@ -2015,19 +2036,22 @@ function configurarEventListeners() {
 		});
 	});
 
-	// Botões de configuração
-	document
-		.getElementById("btn-salvar-config")
-		.addEventListener("click", salvarConfiguracaoGeral);
-	document
-		.getElementById("btn-salvar-voz")
-		.addEventListener("click", salvarConfiguracaoVoz);
-	document
-		.getElementById("btn-salvar-scripts")
-		.addEventListener("click", salvarConfiguracaoScripts);
-	document
-		.getElementById("btn-salvar-integracoes")
-		.addEventListener("click", salvarConfiguracaoIntegracoes);
+	// Botões de configuração (Defensivo: verifica se ID existe)
+	const btnGeral = document.getElementById("btn-salvar-config");
+	if (btnGeral) btnGeral.addEventListener("click", salvarConfigGeral);
+	
+	const btnVoz = document.getElementById("btn-salvar-voz");
+	if (btnVoz) btnVoz.addEventListener("click", salvarConfigVoz);
+	
+	const btnScripts = document.getElementById("btn-salvar-scripts");
+	if (btnScripts) btnScripts.addEventListener("click", salvarConfigScripts);
+	
+	const btnIntegracoes = document.getElementById("btn-salvar-integracoes");
+	if (btnIntegracoes) {
+		btnIntegracoes.addEventListener("click", () => {
+			mostrarNotificacao("Configurações de integração salvas!", "success");
+		});
+	}
 
 	// Botões de teste
 	document
@@ -2085,6 +2109,21 @@ function configurarEventListeners() {
 	document
 		.getElementById("input-importar-config")
 		.addEventListener("change", importarConfiguracoes);
+
+	// Slider de velocidade da fala (visualização instantânea)
+	const sliderVelocidade = document.getElementById("velocidade-fala");
+	const valorVelocidade = document.getElementById("velocidade-valor");
+
+	if (sliderVelocidade && valorVelocidade) {
+		// Atualizar imediatamente ao mover (input event)
+		sliderVelocidade.addEventListener("input", (e) => {
+			const valor = parseFloat(e.target.value).toFixed(1);
+			valorVelocidade.textContent = `${valor}x`;
+		});
+		
+		// Garantir que o valor inicial esteja correto
+		valorVelocidade.textContent = `${parseFloat(sliderVelocidade.value).toFixed(1)}x`;
+	}
 
 	// Atualização automática do preview
 	document

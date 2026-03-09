@@ -24,10 +24,23 @@ const twilioClient = twilio(accountSid, authToken);
  * CONFIGURAÇÕES DE VOZ
  */
 const CONFIG_VOZ = {
-	idioma: "pt-BR", // Português Brasil
-	velocidade: "medium",
-	genero: "female", // Voz feminina humanizada
-	sotaque: "br", // Sotaque brasileiro
+	idioma: process.env.VOICE_LANGUAGE || "pt-BR",
+	velocidade: process.env.VOICE_SPEED || "medium", // slow, medium, fast
+	genero: process.env.VOICE_GENDER || "female",
+	sotaque: "br",
+};
+
+/**
+ * Função auxiliar para envolver texto em configurações de prosódia (velocidade)
+ * @param {string} texto - Texto original
+ * @returns {string} Texto com tags SSML
+ */
+const aplicarProsodia = (texto) => {
+	let rate = "100%";
+	if (CONFIG_VOZ.velocidade === "slow") rate = "75%";
+	if (CONFIG_VOZ.velocidade === "fast") rate = "125%";
+	
+	return `<speak><prosody rate="${rate}">${texto}</prosody></speak>`;
 };
 
 /**
@@ -49,12 +62,12 @@ export const handleChamadaRecebida = async (req, res) => {
 		if (cliente) {
 			// Cliente encontrado - cumprimentar personalmente
 			const saudacao = `Olá ${cliente.nome}, bem-vindo! Como posso ajudá-lo hoje?`;
-			twiml.say({ voice: "alice", language: CONFIG_VOZ.idioma }, saudacao);
+			twiml.say({ voice: "alice", language: CONFIG_VOZ.idioma }, aplicarProsodia(saudacao));
 		} else {
 			// Cliente novo - saudação genérica
 			const saudacao =
 				"Bem-vindo! Por favor, registre sua informação ou diga como posso ajudá-lo.";
-			twiml.say({ voice: "alice", language: CONFIG_VOZ.idioma }, saudacao);
+			twiml.say({ voice: "alice", language: CONFIG_VOZ.idioma }, aplicarProsodia(saudacao));
 		}
 
 		// 3. Coletar input de voz do usuário
@@ -78,7 +91,7 @@ export const handleChamadaRecebida = async (req, res) => {
 		const twiml = new twilio.twiml.VoiceResponse();
 		twiml.say(
 			{ voice: "alice", language: CONFIG_VOZ.idioma },
-			"Desculpe, ocorreu um erro. Tentando conectar com um atendente.",
+			aplicarProsodia("Desculpe, ocorreu um erro. Tentando conectar com um atendente."),
 		);
 
 		res.type("text/xml");
@@ -136,7 +149,7 @@ export const procesarInput = async (req, res) => {
 		// Falar resposta da IA
 		twiml.say(
 			{ voice: "alice", language: CONFIG_VOZ.idioma },
-			respostaIA.resposta,
+			aplicarProsodia(respostaIA.resposta),
 		);
 
 		// 7. Decidir próximo passo
@@ -144,7 +157,7 @@ export const procesarInput = async (req, res) => {
 			// Transferir para atendente
 			twiml.say(
 				{ voice: "alice", language: CONFIG_VOZ.idioma },
-				"Um momento, vou conectar você com um de nossos atendentes.",
+				aplicarProsodia("Um momento, vou conectar você com um de nossos atendentes."),
 			);
 
 			// Registrar que foi transferido
@@ -161,7 +174,7 @@ export const procesarInput = async (req, res) => {
 			} else {
 				twiml.say(
 					{ voice: "alice", language: CONFIG_VOZ.idioma },
-					"Desculpe, no momento não há atendentes disponíveis. Deixe uma mensagem.",
+					aplicarProsodia("Desculpe, no momento não há atendentes disponíveis. Deixe uma mensagem."),
 				);
 				twiml.record({
 					maxLength: 120,
@@ -173,7 +186,7 @@ export const procesarInput = async (req, res) => {
 			// Perguntar se resolveu
 			twiml.say(
 				{ voice: "alice", language: CONFIG_VOZ.idioma },
-				"A sua solicitação foi resolvida? Digite 1 para sim ou 2 para não.",
+				aplicarProsodia("A sua solicitação foi resolvida? Digite 1 para sim ou 2 para não."),
 			);
 
 			twiml.gather({
@@ -225,7 +238,7 @@ export const confirmarResolucao = async (req, res) => {
 			const twiml = new twilio.twiml.VoiceResponse();
 			twiml.say(
 				{ voice: "alice", language: CONFIG_VOZ.idioma },
-				"Sessão expirada.",
+				aplicarProsodia("Sessão expirada."),
 			);
 			twiml.hangup();
 			res.type("text/xml");
@@ -248,12 +261,12 @@ export const confirmarResolucao = async (req, res) => {
 		if (foiResolvido) {
 			twiml.say(
 				{ voice: "alice", language: CONFIG_VOZ.idioma },
-				"Ótimo! Fico feliz em ter ajudado. Obrigado por usar nosso serviço. Até logo!",
+				aplicarProsodia("Ótimo! Fico feliz em ter ajudado. Obrigado por usar nosso serviço. Até logo!"),
 			);
 		} else {
 			twiml.say(
 				{ voice: "alice", language: CONFIG_VOZ.idioma },
-				"Desculpe que não consegui resolver. Vou conectar com um atendente.",
+				aplicarProsodia("Desculpe que não consegui resolver. Vou conectar com um atendente."),
 			);
 			// Transferir...
 		}
@@ -306,7 +319,7 @@ export const registrarMensagemVoz = async (req, res) => {
 		const twiml = new twilio.twiml.VoiceResponse();
 		twiml.say(
 			{ voice: "alice", language: CONFIG_VOZ.idioma },
-			"Obrigado pela sua mensagem. Um atendente retornará em breve.",
+			aplicarProsodia("Obrigado pela sua mensagem. Um atendente retornará em breve."),
 		);
 		twiml.hangup();
 
