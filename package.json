@@ -11,21 +11,41 @@
     "client:voice": "cd voice-agent && cd frontend && npx http-server",
     "setup-db:voice": "cd voice-agent && node database/init-db.js",
     "setup": "./setup.sh",
-    "test": "./test.sh"
+    "test": "./test.sh",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,html,css}": [
+      "prettier --write"
+    ]
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "sqlite3": "^5.1.6",
+    "express": "^4.18.2",
     "openai": "^4.20.0",
+    "sqlite3": "^5.1.6",
     "twilio": "^5.0.0",
-    "uuid": "^9.0.1",
-    "bcryptjs": "^2.4.3"
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.2",
+    "nodemon": "^3.0.1",
+    "prettier": "^3.8.1"
   }
 }

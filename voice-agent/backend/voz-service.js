@@ -17,6 +17,7 @@ import iaService from './ia-service.js';
 // Inicializar cliente Twilio
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
+// eslint-disable-next-line no-unused-vars -- será usado na transferência real
 const twilioClient = twilio(accountSid, authToken);
 
 /**
@@ -26,7 +27,7 @@ const CONFIG_VOZ = {
   idioma: 'pt-BR', // Português Brasil
   velocidade: 'medium',
   genero: 'female', // Voz feminina humanizada
-  sotaque: 'br' // Sotaque brasileiro
+  sotaque: 'br', // Sotaque brasileiro
 };
 
 /**
@@ -38,29 +39,23 @@ const CONFIG_VOZ = {
 export const handleChamadaRecebida = async (req, res) => {
   try {
     const telefoneChamador = req.body.From;
-    
+
     // 1. Buscar cliente no banco de dados
     const cliente = await db.buscarClientePorTelefone(telefoneChamador);
-    
+
     // 2. Criar resposta TwiML
     const twiml = new twilio.twiml.VoiceResponse();
-    
+
     if (cliente) {
       // Cliente encontrado - cumprimentar personalmente
       const saudacao = `Olá ${cliente.nome}, bem-vindo! Como posso ajudá-lo hoje?`;
-      twiml.say(
-        { voice: 'alice', language: CONFIG_VOZ.idioma },
-        saudacao
-      );
+      twiml.say({ voice: 'alice', language: CONFIG_VOZ.idioma }, saudacao);
     } else {
       // Cliente novo - saudação genérica
       const saudacao = 'Bem-vindo! Por favor, registre sua informação ou diga como posso ajudá-lo.';
-      twiml.say(
-        { voice: 'alice', language: CONFIG_VOZ.idioma },
-        saudacao
-      );
+      twiml.say({ voice: 'alice', language: CONFIG_VOZ.idioma }, saudacao);
     }
-    
+
     // 3. Coletar input de voz do usuário
     twiml.gather({
       numDigits: 1,
@@ -70,22 +65,21 @@ export const handleChamadaRecebida = async (req, res) => {
       speechTimeout: 'auto',
       language: CONFIG_VOZ.idioma,
       speechModel: 'numbers_and_commands',
-      maxSpeechTime: 60
+      maxSpeechTime: 60,
     });
-    
+
     res.type('text/xml');
     res.send(twiml.toString());
-    
   } catch (error) {
     console.error('Erro ao handle chamada:', error);
-    
+
     // Resposta de erro
     const twiml = new twilio.twiml.VoiceResponse();
     twiml.say(
       { voice: 'alice', language: CONFIG_VOZ.idioma },
       'Desculpe, ocorreu um erro. Tentando conectar com um atendente.'
     );
-    
+
     res.type('text/xml');
     res.send(twiml.toString());
   }
@@ -100,11 +94,11 @@ export const procesarInput = async (req, res) => {
   try {
     const { SpeechResult, Digits, CallSid } = req.body;
     const inputUsuario = SpeechResult || Digits || '';
-    
+
     // 1. Buscar cliente
     const telefoneChamador = req.body.From;
     let cliente = await db.buscarClientePorTelefone(telefoneChamador);
-    
+
     // 2. Se cliente novo, criar registro
     if (!cliente) {
       // Aqui seria necessário coletar dados (nome, etc)
@@ -112,38 +106,35 @@ export const procesarInput = async (req, res) => {
       const novoClienteId = await db.criarCliente({
         nome: 'Cliente de Teste',
         telefone: telefoneChamador,
-        email: `cliente-${Date.now()}@unknown.com`
+        email: `cliente-${Date.now()}@unknown.com`,
       });
       cliente = await db.buscarClientePorId(novoClienteId);
     }
-    
+
     // 3. Registrar chamada
     const chamadaId = await db.registrarChamada(cliente.id, inputUsuario);
-    
+
     // 4. Processar com IA
     const respostaIA = await iaService.processarMensagem(
       inputUsuario,
       cliente,
       [] // Histórico vazio na primeira mensagem
     );
-    
+
     // 5. Registrar interação
     await db.registrarInteracaoIa(chamadaId, {
       tipo: 'voz',
       mensagem_usuario: inputUsuario,
       resposta_ia: respostaIA.resposta,
-      confianca_resposta: respostaIA.confianca
+      confianca_resposta: respostaIA.confianca,
     });
-    
+
     // 6. Criar resposta TwiML
     const twiml = new twilio.twiml.VoiceResponse();
-    
+
     // Falar resposta da IA
-    twiml.say(
-      { voice: 'alice', language: CONFIG_VOZ.idioma },
-      respostaIA.resposta
-    );
-    
+    twiml.say({ voice: 'alice', language: CONFIG_VOZ.idioma }, respostaIA.resposta);
+
     // 7. Decidir próximo passo
     if (respostaIA.deve_transferir) {
       // Transferir para atendente
@@ -151,14 +142,14 @@ export const procesarInput = async (req, res) => {
         { voice: 'alice', language: CONFIG_VOZ.idioma },
         'Um momento, vou conectar você com um de nossos atendentes.'
       );
-      
+
       // Registrar que foi transferido
       await db.finalizarChamada(chamadaId, {
         resultado: 'Transferido para atendente',
         transferido_para_atendente: true,
-        foi_resolvido: false
+        foi_resolvido: false,
       });
-      
+
       // Transferir chamada
       const atendente = await db.buscarAtendenteLivre();
       if (atendente) {
@@ -171,25 +162,24 @@ export const procesarInput = async (req, res) => {
         twiml.record({
           maxLength: 120,
           transcribe: true,
-          action: '/api/voz/mensagem-registrada'
+          action: '/api/voz/mensagem-registrada',
         });
       }
-      
     } else {
       // Perguntar se resolveu
       twiml.say(
         { voice: 'alice', language: CONFIG_VOZ.idioma },
         'A sua solicitação foi resolvida? Digite 1 para sim ou 2 para não.'
       );
-      
+
       twiml.gather({
         numDigits: 1,
         action: '/api/voz/confirmar-resolucao',
         method: 'POST',
-        timeout: 5
+        timeout: 5,
       });
     }
-    
+
     // 7. Armazenar dados da chamada na sessão/cache
     // (Em produção, usar Redis ou similar)
     global.chamadasAtivas = global.chamadasAtivas || {};
@@ -197,22 +187,21 @@ export const procesarInput = async (req, res) => {
       chamadaId,
       clienteId: cliente.id,
       cliente,
-      respostaIA
+      respostaIA,
     };
-    
+
     res.type('text/xml');
     res.send(twiml.toString());
-    
   } catch (error) {
     console.error('Erro ao processar input:', error);
-    
+
     const twiml = new twilio.twiml.VoiceResponse();
     twiml.say(
       { voice: 'alice', language: CONFIG_VOZ.idioma },
       'Desculpe, ocorreu um erro no processamento.'
     );
     twiml.hangup();
-    
+
     res.type('text/xml');
     res.send(twiml.toString());
   }
@@ -227,7 +216,7 @@ export const confirmarResolucao = async (req, res) => {
   try {
     const { Digits, CallSid } = req.body;
     const chamadaAtiva = global.chamadasAtivas?.[CallSid];
-    
+
     if (!chamadaAtiva) {
       const twiml = new twilio.twiml.VoiceResponse();
       twiml.say({ voice: 'alice', language: CONFIG_VOZ.idioma }, 'Sessão expirada.');
@@ -236,19 +225,19 @@ export const confirmarResolucao = async (req, res) => {
       res.send(twiml.toString());
       return;
     }
-    
+
     const foiResolvido = Digits === '1';
-    
+
     // Finalizar chamada
     await db.finalizarChamada(chamadaAtiva.chamadaId, {
       resultado: foiResolvido ? 'Resolvido' : 'Não resolvido',
       foi_resolvido: foiResolvido,
-      transferido_para_atendente: false
+      transferido_para_atendente: false,
     });
-    
+
     // Resposta final
     const twiml = new twilio.twiml.VoiceResponse();
-    
+
     if (foiResolvido) {
       twiml.say(
         { voice: 'alice', language: CONFIG_VOZ.idioma },
@@ -261,21 +250,20 @@ export const confirmarResolucao = async (req, res) => {
       );
       // Transferir...
     }
-    
+
     twiml.hangup();
-    
+
     // Limpar dados da sessão
     delete global.chamadasAtivas[CallSid];
-    
+
     res.type('text/xml');
     res.send(twiml.toString());
-    
   } catch (error) {
     console.error('Erro ao confirmar resolução:', error);
-    
+
     const twiml = new twilio.twiml.VoiceResponse();
     twiml.hangup();
-    
+
     res.type('text/xml');
     res.send(twiml.toString());
   }
@@ -290,7 +278,7 @@ export const registrarMensagemVoz = async (req, res) => {
   try {
     const { RecordingUrl, CallSid, Transcription } = req.body;
     const chamadaAtiva = global.chamadasAtivas?.[CallSid];
-    
+
     if (chamadaAtiva) {
       // Registrar transcription na chamada
       await db.finalizarChamada(chamadaAtiva.chamadaId, {
@@ -298,26 +286,25 @@ export const registrarMensagemVoz = async (req, res) => {
         transcricao: Transcription || 'Não transcrita',
         transferido_para_atendente: false,
         foi_resolvido: false,
-        notas_internas: `URL de áudio: ${RecordingUrl}`
+        notas_internas: `URL de áudio: ${RecordingUrl}`,
       });
-      
+
       // Notificar atendentes sobre nova mensagem
       console.log('📱 Nova mensagem de voz registrada:', {
         cliente: chamadaAtiva.cliente.nome,
-        transcricao: Transcription
+        transcricao: Transcription,
       });
     }
-    
+
     const twiml = new twilio.twiml.VoiceResponse();
     twiml.say(
       { voice: 'alice', language: CONFIG_VOZ.idioma },
       'Obrigado pela sua mensagem. Um atendente retornará em breve.'
     );
     twiml.hangup();
-    
+
     res.type('text/xml');
     res.send(twiml.toString());
-    
   } catch (error) {
     console.error('Erro ao registrar mensagem:', error);
   }
@@ -333,26 +320,25 @@ export const transferirParaAtendente = async (chamadaId, especialidade = null) =
   try {
     // Buscar atendente disponível
     const atendente = await db.buscarAtendenteLivre(especialidade);
-    
+
     if (!atendente) {
       console.log('⚠️ Nenhum atendente disponível');
       return null;
     }
-    
-    // Atualizar chamada
-    const chamada = await db.buscarChamada(chamadaId);
-    
+
+    // Buscar chamada para obter dados (será usado na transferência real)
+    const _chamada = await db.buscarChamada(chamadaId);
+
     // Aqui você faria a transferência real via Twilio
     // twilioClient.calls(chamada.sid).update({
     //   url: `https://seu-dominio/api/voz/transferir?atendente=${atendente.id}`,
     //   method: 'POST'
     // });
-    
+
     // Atualizar status do atendente
     await db.atualizarStatusAtendente(atendente.id, 'ocupado');
-    
+
     return atendente;
-    
   } catch (error) {
     console.error('Erro ao transferir:', error);
     return null;
@@ -365,5 +351,5 @@ export default {
   confirmarResolucao,
   registrarMensagemVoz,
   transferirParaAtendente,
-  CONFIG_VOZ
+  CONFIG_VOZ,
 };

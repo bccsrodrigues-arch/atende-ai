@@ -7,7 +7,7 @@
  * - Tabela de histórico de chamadas
  * - Tabela de atendentes
  * - Índices para otimizar buscas
- * 
+ *
  * Execute: node database/init-db.js
  */
 
@@ -48,7 +48,7 @@ const createClientesTable = () => {
       ultima_interacao DATETIME
     )
   `;
-  
+
   db.run(sql, (err) => {
     if (err) {
       console.error('❌ Erro ao criar tabela clientes:', err);
@@ -82,7 +82,7 @@ const createChamadasTable = () => {
       FOREIGN KEY (atendente_id) REFERENCES atendentes(id)
     )
   `;
-  
+
   db.run(sql, (err) => {
     if (err) {
       console.error('❌ Erro ao criar tabela chamadas:', err);
@@ -110,7 +110,7 @@ const createAtendentesTable = () => {
       data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `;
-  
+
   db.run(sql, (err) => {
     if (err) {
       console.error('❌ Erro ao criar tabela atendentes:', err);
@@ -138,7 +138,7 @@ const createInteracoesTable = () => {
       FOREIGN KEY (chamada_id) REFERENCES chamadas(id)
     )
   `;
-  
+
   db.run(sql, (err) => {
     if (err) {
       console.error('❌ Erro ao criar tabela interações:', err);
@@ -164,7 +164,7 @@ const createProblemasTable = () => {
       data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `;
-  
+
   db.run(sql, (err) => {
     if (err) {
       console.error('❌ Erro ao criar tabela problemas:', err);
@@ -185,15 +185,15 @@ const createIndices = () => {
     'CREATE INDEX IF NOT EXISTS idx_chamadas_cliente ON chamadas(cliente_id)',
     'CREATE INDEX IF NOT EXISTS idx_chamadas_data ON chamadas(data_hora)',
     'CREATE INDEX IF NOT EXISTS idx_interacoes_chamada ON interacoes_ia(chamada_id)',
-    'CREATE INDEX IF NOT EXISTS idx_atendentes_status ON atendentes(status)'
+    'CREATE INDEX IF NOT EXISTS idx_atendentes_status ON atendentes(status)',
   ];
-  
-  indices.forEach(indexSql => {
+
+  indices.forEach((indexSql) => {
     db.run(indexSql, (err) => {
       if (err) console.error('❌ Erro ao criar índice:', err);
     });
   });
-  
+
   console.log('✅ Índices criados/verificados');
 };
 
@@ -211,7 +211,7 @@ const insertSampleData = () => {
       email: 'joao@example.com',
       cpf_cnpj: '12345678900',
       endereco: 'Rua A, 123 - São Paulo, SP',
-      dados_importantes: 'Cliente premium com conta ativa desde 2022'
+      dados_importantes: 'Cliente premium com conta ativa desde 2022',
     },
     {
       uuid: '550e8400-e29b-41d4-a716-446655440002',
@@ -220,17 +220,17 @@ const insertSampleData = () => {
       email: 'maria@example.com',
       cpf_cnpj: '98765432100',
       endereco: 'Avenida B, 456 - Rio de Janeiro, RJ',
-      dados_importantes: 'Problemas frequentes com pagamento'
-    }
+      dados_importantes: 'Problemas frequentes com pagamento',
+    },
   ];
-  
-  clientesExemplo.forEach(cliente => {
+
+  clientesExemplo.forEach((cliente) => {
     const sql = `
       INSERT OR IGNORE INTO clientes 
       (uuid, nome, telefone, email, cpf_cnpj, endereco, dados_importantes) 
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-    
+
     db.run(sql, [
       cliente.uuid,
       cliente.nome,
@@ -238,10 +238,10 @@ const insertSampleData = () => {
       cliente.email,
       cliente.cpf_cnpj,
       cliente.endereco,
-      cliente.dados_importantes
+      cliente.dados_importantes,
     ]);
   });
-  
+
   // Inserir atendentes de exemplo
   const atendentesExemplo = [
     {
@@ -249,33 +249,33 @@ const insertSampleData = () => {
       nome: 'Carlos Mendes',
       email: 'carlos@company.com',
       telefone_interno: '1001',
-      especialidade: 'Financeiro'
+      especialidade: 'Financeiro',
     },
     {
       uuid: '660e8400-e29b-41d4-a716-446655440002',
       nome: 'Ana Costa',
       email: 'ana@company.com',
       telefone_interno: '1002',
-      especialidade: 'Técnico'
-    }
+      especialidade: 'Técnico',
+    },
   ];
-  
-  atendentesExemplo.forEach(atendente => {
+
+  atendentesExemplo.forEach((atendente) => {
     const sql = `
       INSERT OR IGNORE INTO atendentes 
       (uuid, nome, email, telefone_interno, especialidade) 
       VALUES (?, ?, ?, ?, ?)
     `;
-    
+
     db.run(sql, [
       atendente.uuid,
       atendente.nome,
       atendente.email,
       atendente.telefone_interno,
-      atendente.especialidade
+      atendente.especialidade,
     ]);
   });
-  
+
   // Inserir problemas conhecidos
   const problemasExemplo = [
     {
@@ -283,40 +283,40 @@ const insertSampleData = () => {
       descricao: 'Cartão de crédito recusado',
       solucao: 'Verificar saldo disponível, atualizar dados do cartão ou sugerir outro método',
       palavras_chave: 'cartão,recusado,pagamento,débito',
-      prioridade: 9
+      prioridade: 9,
     },
     {
       categoria: 'Técnico',
       descricao: 'Sistema fora do ar',
       solucao: 'Informar sobre manutenção programada e tempo estimado de volta',
       palavras_chave: 'fora do ar,sistema,indisponível,erro',
-      prioridade: 10
+      prioridade: 10,
     },
     {
       categoria: 'Suporte',
       descricao: 'Esqueci minha senha',
       solucao: 'Enviar link de recuperação por email ou SMS',
       palavras_chave: 'senha,esqueci,reset,acesso',
-      prioridade: 7
-    }
+      prioridade: 7,
+    },
   ];
-  
-  problemasExemplo.forEach(problema => {
+
+  problemasExemplo.forEach((problema) => {
     const sql = `
       INSERT OR IGNORE INTO problemas_conhecidos 
       (categoria, descricao, solucao, palavras_chave, prioridade) 
       VALUES (?, ?, ?, ?, ?)
     `;
-    
+
     db.run(sql, [
       problema.categoria,
       problema.descricao,
       problema.solucao,
       problema.palavras_chave,
-      problema.prioridade
+      problema.prioridade,
     ]);
   });
-  
+
   console.log('✅ Dados de exemplo inseridos');
 };
 
@@ -325,18 +325,18 @@ const insertSampleData = () => {
  */
 const initDatabase = () => {
   console.log('\n🚀 Iniciando setup do banco de dados...\n');
-  
+
   createClientesTable();
   createChamadasTable();
   createAtendentesTable();
   createInteracoesTable();
   createProblemasTable();
   createIndices();
-  
+
   // Aguardar um pouco antes de inserir dados de exemplo
   setTimeout(() => {
     insertSampleData();
-    
+
     setTimeout(() => {
       console.log('\n✅ Banco de dados inicializado com sucesso!');
       console.log('📁 Arquivo: ' + dbPath);

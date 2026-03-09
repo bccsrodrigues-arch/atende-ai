@@ -37,10 +37,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // CORS
-app.use(cors({
-  origin: '*',
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: '*',
+    credentials: true,
+  })
+);
 
 // Logging de requisições
 app.use((req, res, next) => {
@@ -98,23 +100,23 @@ app.get('/api/clientes', async (req, res) => {
   try {
     const page = req.query.page || 1;
     const perPage = req.query.perPage || 20;
-    
+
     const clientes = await dbService.listarClientes(page, perPage);
     const stats = await dbService.obterEstatisticas();
-    
+
     res.json({
       sucesso: true,
       dados: clientes,
       paginacao: {
         pagina: page,
         por_pagina: perPage,
-        total: stats.total_clientes
-      }
+        total: stats.total_clientes,
+      },
     });
   } catch (error) {
     res.status(500).json({
       sucesso: false,
-      erro: error.message
+      erro: error.message,
     });
   }
 });
@@ -126,26 +128,26 @@ app.get('/api/clientes', async (req, res) => {
 app.get('/api/clientes/:id', async (req, res) => {
   try {
     const cliente = await dbService.buscarClientePorId(req.params.id);
-    
+
     if (!cliente) {
       return res.status(404).json({
         sucesso: false,
-        erro: 'Cliente não encontrado'
+        erro: 'Cliente não encontrado',
       });
     }
-    
+
     // Buscar histórico de chamadas
     const chamadas = await dbService.listarChamadasCliente(cliente.id);
-    
+
     res.json({
       sucesso: true,
       cliente,
-      historico_chamadas: chamadas
+      historico_chamadas: chamadas,
     });
   } catch (error) {
     res.status(500).json({
       sucesso: false,
-      erro: error.message
+      erro: error.message,
     });
   }
 });
@@ -158,42 +160,42 @@ app.get('/api/clientes/:id', async (req, res) => {
 app.post('/api/clientes', async (req, res) => {
   try {
     const { nome, telefone, email, cpf_cnpj, endereco, dados_importantes } = req.body;
-    
+
     // Validação básica
     if (!nome || !telefone || !email) {
       return res.status(400).json({
         sucesso: false,
-        erro: 'Nome, telefone e email são obrigatórios'
+        erro: 'Nome, telefone e email são obrigatórios',
       });
     }
-    
+
     const clienteId = await dbService.criarCliente({
       nome,
       telefone,
       email,
       cpf_cnpj,
       endereco,
-      dados_importantes
+      dados_importantes,
     });
-    
+
     if (!clienteId) {
       return res.status(400).json({
         sucesso: false,
-        erro: 'Erro ao criar cliente (pode estar duplicado)'
+        erro: 'Erro ao criar cliente (pode estar duplicado)',
       });
     }
-    
+
     const novoCliente = await dbService.buscarClientePorId(clienteId);
-    
+
     res.status(201).json({
       sucesso: true,
       mensagem: 'Cliente criado com sucesso',
-      cliente: novoCliente
+      cliente: novoCliente,
     });
   } catch (error) {
     res.status(500).json({
       sucesso: false,
-      erro: error.message
+      erro: error.message,
     });
   }
 });
@@ -205,25 +207,25 @@ app.post('/api/clientes', async (req, res) => {
 app.put('/api/clientes/:id', async (req, res) => {
   try {
     const resultado = await dbService.atualizarCliente(req.params.id, req.body);
-    
+
     if (!resultado) {
       return res.status(400).json({
         sucesso: false,
-        erro: 'Erro ao atualizar cliente'
+        erro: 'Erro ao atualizar cliente',
       });
     }
-    
+
     const clienteAtualizado = await dbService.buscarClientePorId(req.params.id);
-    
+
     res.json({
       sucesso: true,
       mensagem: 'Cliente atualizado com sucesso',
-      cliente: clienteAtualizado
+      cliente: clienteAtualizado,
     });
   } catch (error) {
     res.status(500).json({
       sucesso: false,
-      erro: error.message
+      erro: error.message,
     });
   }
 });
@@ -242,35 +244,31 @@ app.put('/api/clientes/:id', async (req, res) => {
 app.post('/api/ia/processar', async (req, res) => {
   try {
     const { mensagem, cliente_id, historico } = req.body;
-    
+
     if (!mensagem) {
       return res.status(400).json({
         sucesso: false,
-        erro: 'Mensagem é obrigatória'
+        erro: 'Mensagem é obrigatória',
       });
     }
-    
+
     // Buscar cliente se fornecido
     let cliente = null;
     if (cliente_id) {
       cliente = await dbService.buscarClientePorId(cliente_id);
     }
-    
+
     // Processar com IA
-    const resposta = await iaService.processarMensagem(
-      mensagem,
-      cliente || {},
-      historico || []
-    );
-    
+    const resposta = await iaService.processarMensagem(mensagem, cliente || {}, historico || []);
+
     res.json({
       sucesso: true,
-      resposta
+      resposta,
     });
   } catch (error) {
     res.status(500).json({
       sucesso: false,
-      erro: error.message
+      erro: error.message,
     });
   }
 });
@@ -283,24 +281,24 @@ app.post('/api/ia/processar', async (req, res) => {
 app.post('/api/ia/analise-intencao', async (req, res) => {
   try {
     const { mensagem } = req.body;
-    
+
     if (!mensagem) {
       return res.status(400).json({
         sucesso: false,
-        erro: 'Mensagem é obrigatória'
+        erro: 'Mensagem é obrigatória',
       });
     }
-    
+
     const analise = await iaService.analisarIntencao(mensagem);
-    
+
     res.json({
       sucesso: true,
-      analise
+      analise,
     });
   } catch (error) {
     res.status(500).json({
       sucesso: false,
-      erro: error.message
+      erro: error.message,
     });
   }
 });
@@ -318,15 +316,15 @@ app.post('/api/ia/analise-intencao', async (req, res) => {
 app.get('/api/chamadas/historico/:cliente_id', async (req, res) => {
   try {
     const chamadas = await dbService.listarChamadasCliente(req.params.cliente_id);
-    
+
     res.json({
       sucesso: true,
-      chamadas
+      chamadas,
     });
   } catch (error) {
     res.status(500).json({
       sucesso: false,
-      erro: error.message
+      erro: error.message,
     });
   }
 });
@@ -344,15 +342,15 @@ app.get('/api/chamadas/historico/:cliente_id', async (req, res) => {
 app.get('/api/admin/estatisticas', async (req, res) => {
   try {
     const stats = await dbService.obterEstatisticas();
-    
+
     res.json({
       sucesso: true,
-      estatisticas: stats
+      estatisticas: stats,
     });
   } catch (error) {
     res.status(500).json({
       sucesso: false,
-      erro: error.message
+      erro: error.message,
     });
   }
 });
@@ -365,18 +363,18 @@ app.get('/api/admin/dashboard', async (req, res) => {
   try {
     const stats = await dbService.obterEstatisticas();
     const clientesRecentes = await dbService.listarClientes(1, 5);
-    
+
     res.json({
       sucesso: true,
       dashboard: {
         estatisticas: stats,
-        clientes_recentes: clientesRecentes
-      }
+        clientes_recentes: clientesRecentes,
+      },
     });
   } catch (error) {
     res.status(500).json({
       sucesso: false,
-      erro: error.message
+      erro: error.message,
     });
   }
 });
@@ -415,20 +413,20 @@ app.get('/dashboard', (req, res) => {
 app.use((req, res) => {
   res.status(404).json({
     sucesso: false,
-    erro: 'Rota não encontrada: ' + req.path
+    erro: 'Rota não encontrada: ' + req.path,
   });
 });
 
 /**
  * 500 - Erro geral
  */
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error('❌ Erro não tratado:', err);
-  
+
   res.status(500).json({
     sucesso: false,
     erro: 'Erro interno do servidor',
-    mensagem: process.env.NODE_ENV === 'development' ? err.message : undefined
+    mensagem: process.env.NODE_ENV === 'development' ? err.message : undefined,
   });
 });
 

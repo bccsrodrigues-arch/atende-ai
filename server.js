@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 function parseJSONBody(req) {
   return new Promise((resolve, reject) => {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    req.on('data', (chunk) => (body += chunk));
     req.on('end', () => {
       try {
         const json = body ? JSON.parse(body) : {};
@@ -31,8 +31,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.url === '/health' && req.method === 'GET') {
-    res.writeHead(200, {'Content-Type': 'application/json'});
-    return res.end(JSON.stringify({status: 'ok'}));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ status: 'ok' }));
   }
 
   if (req.url === '/api/posts' && req.method === 'POST') {
@@ -40,14 +40,18 @@ const server = http.createServer(async (req, res) => {
       const payload = await parseJSONBody(req);
       // validar campos mínimos
       if (!payload.title && !payload.data) {
-        res.writeHead(400, {'Content-Type': 'application/json'});
-        return res.end(JSON.stringify({error: 'payload inválido - envie title ou data'}));
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'payload inválido - envie title ou data' }));
       }
 
       // persistir rascunho local simples
       const dbPath = './data/posts.json';
       let posts = [];
-      try { posts = JSON.parse(fs.readFileSync(dbPath, 'utf8') || '[]'); } catch(e) { posts = []; }
+      try {
+        posts = JSON.parse(fs.readFileSync(dbPath, 'utf8') || '[]');
+      } catch (_e) {
+        posts = [];
+      }
       const entry = { id: Date.now(), receivedAt: new Date().toISOString(), payload };
       posts.push(entry);
       fs.mkdirSync('./data', { recursive: true });
@@ -56,22 +60,22 @@ const server = http.createServer(async (req, res) => {
       console.log('Recebido payload:', JSON.stringify(payload).slice(0, 1000));
 
       // resposta: URL hipotética do webhook N8N (o usuário configurará)
-      res.writeHead(200, {'Content-Type': 'application/json'});
-      return res.end(JSON.stringify({status: 'saved', id: entry.id}));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ status: 'saved', id: entry.id }));
     } catch (err) {
-      res.writeHead(500, {'Content-Type': 'application/json'});
-      return res.end(JSON.stringify({error: 'erro ao processar payload', details: String(err)}));
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'erro ao processar payload', details: String(err) }));
     }
   }
 
   // Root - instruções rápidas
   if (req.url === '/' && req.method === 'GET') {
-    res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
     return res.end('Atende AI - Financial Snapshot POC (servidor mínimo). Use POST /api/posts');
   }
 
-  res.writeHead(404, {'Content-Type': 'application/json'});
-  res.end(JSON.stringify({error: 'not found'}));
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: 'not found' }));
 });
 
 server.listen(PORT, () => {
