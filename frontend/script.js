@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 /**
  * Configurar event listeners
  */
-function configurarEventListeners() {
+function configurarEventListeners_legacy() {
   // Slider de velocidade da fala
   const sliderVelocidade = document.getElementById('velocidade-fala');
   const valorVelocidade = document.getElementById('velocidade-valor');
@@ -842,7 +842,7 @@ function ouvirUltimaResposta() {
  * Falar texto usando Web Speech API
  * @param {string} texto - Texto a ser falado
  */
-function falarTexto(texto) {
+function falarTexto_legacy(texto) {
   if (!('speechSynthesis' in window)) {
     mostrarNotificacao('Seu navegador não suporta síntese de voz', 'error');
     return;
@@ -906,7 +906,7 @@ function carregarConfiguracoes() {
 /**
  * Mostrar notificação temporária
  */
-function mostrarNotificacao(mensagem, tipo = 'info') {
+function mostrarNotificacao_legacy(mensagem, tipo = 'info') {
   const notification = document.createElement('div');
   notification.className = `notification ${tipo}`;
   notification.textContent = mensagem;
@@ -1545,6 +1545,9 @@ function falarTexto(texto) {
     console.error('Erro na síntese de voz:', event.error);
     document.getElementById('voz-status').textContent = '❌ Erro na voz';
   };
+  // Reproduzir fala
+  speechSynthesis.speak(utterance);
+}
 
 /**
  * Parar fala atual

@@ -1350,33 +1350,3 @@ input:checked + .slider:before {
     align-items: stretch;
   }
 }
-  .header h1 {
-    font-size: 20px;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .tab-btn {
-    padding: 10px 15px;
-    font-size: 14px;
-  }
-
-  .btn-group {
-    flex-direction: column;
-  }
-
-  .btn {
-    width: 100%;
-  }
-
-  .filter-group {
-    flex-direction: column;
-  }
-
-  .filter-group input,
-  .filter-group select {
-    width: 100%;
-  }
-}

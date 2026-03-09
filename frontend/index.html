@@ -317,12 +317,14 @@
   </style>
 </head>
 <body>
-  <!-- Header -->
+  <!-- Header Unificado -->
   <header class="header">
     <div class="logo">🤖 Atende AI</div>
     <div class="nav-buttons">
+      <a href="/dashboard" class="btn-nav" style="text-decoration: none; color: inherit; padding-top: 10px;">Dashboard</a>
       <button class="btn-nav btn-login" onclick="openModal('login')">Entrar</button>
       <button class="btn-nav btn-register" onclick="openModal('register')">Cadastrar</button>
+      <button class="btn-nav" onclick="logout()" style="display: none;" id="btnLogout">Sair</button>
     </div>
   </header>
 
@@ -372,18 +374,6 @@
   </div>
 
   <div class="home-container">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-content">
-        <h1>🤖 Atende AI</h1>
-        <p>Agente Inteligente de IA para Ligações</p>
-      </div>
-      <nav class="nav">
-        <a href="/">Início</a>
-        <a href="/dashboard">Dashboard</a>
-        <a href="#" onclick="logout()">Sair</a>
-      </nav>
-    </header>
 
     <!-- Hero Section -->
     <section class="hero-section">
