@@ -370,6 +370,49 @@ export const buscarProblemasPorCategoria = async (categoria) => {
 };
 
 /**
+ * Listar todos os problemas / base de conhecimento
+ */
+export const listarProblemas = async () => {
+  try {
+    return await allAsync(
+      'SELECT * FROM problemas_conhecidos ORDER BY prioridade DESC, data_criacao DESC'
+    );
+  } catch (error) {
+    console.error('Erro ao listar problemas:', error);
+    return [];
+  }
+};
+
+/**
+ * Adicionar novo problema (Treinar IA)
+ */
+export const adicionarProblema = async (dados) => {
+  try {
+    const resultado = await runAsync(
+      `INSERT INTO problemas_conhecidos (categoria, descricao, solucao, palavras_chave, prioridade) VALUES (?, ?, ?, ?, ?)`,
+      [dados.categoria, dados.descricao, dados.solucao, dados.palavras_chave, dados.prioridade || 5]
+    );
+    return resultado.lastID;
+  } catch (error) {
+    console.error('Erro ao adicionar problema conhecidos:', error);
+    return null;
+  }
+};
+
+/**
+ * Deletar problema da base de treinamento
+ */
+export const deletarProblema = async (id) => {
+  try {
+    await runAsync('DELETE FROM problemas_conhecidos WHERE id = ?', [id]);
+    return true;
+  } catch (error) {
+    console.error('Erro ao deletar problema:', error);
+    return false;
+  }
+};
+
+/**
  * Buscar solução baseada em palavras-chave
  * @param {string} palavrasChave - Palavras para buscar
  * @returns {Promise<Object>} Melhor correspondência encontrada
@@ -456,6 +499,9 @@ export default {
   atualizarStatusAtendente,
   registrarInteracaoIa,
   buscarProblemasPorCategoria,
+  listarProblemas,
+  adicionarProblema,
+  deletarProblema,
   buscarSolucao,
   obterEstatisticas,
 };

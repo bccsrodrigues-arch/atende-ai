@@ -1709,6 +1709,105 @@ function importarConfiguracoes(event) {
 }
 
 // ==========================================
+// TREINAMENTO E BASE DE CONHECIMENTO
+// ==========================================
+
+function openFormAdicionarTreinamento() {
+  document.getElementById('form-treinamento').style.display = 'block';
+}
+
+function closeFormTreinamento() {
+  document.getElementById('form-treinamento').style.display = 'none';
+  document.getElementById('formNovoTreinamento').reset();
+}
+
+async function carregarTreinamentos() {
+  const tbody = document.getElementById('tbody-treinamentos');
+  tbody.innerHTML = '<tr><td colspan="5" class="text-center">Carregando...</td></tr>';
+  
+  try {
+    const res = await fetch(`${API_BASE}/treinamento/problemas`);
+    const data = await res.json();
+    
+    if (data.sucesso && data.dados.length > 0) {
+      tbody.innerHTML = '';
+      data.dados.forEach(item => {
+        tbody.innerHTML += `
+          <tr>
+            <td>#${item.id}</td>
+            <td><span class="badge ${item.categoria}">${item.categoria}</span></td>
+            <td>${item.descricao}</td>
+            <td><small>${item.palavras_chave || 'N/A'}</small></td>
+            <td>
+              <button class="btn btn-danger btn-small" onclick="deletarTreinamento(${item.id})">Excluir</button>
+            </td>
+          </tr>
+        `;
+      });
+    } else {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhum conhecimento treinado ainda.</td></tr>';
+    }
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center erro">Erro ao carregar conhecimentos.</td></tr>';
+  }
+}
+
+async function deletarTreinamento(id) {
+  if (!confirm('Tem certeza que deseja remover esta regra de conhecimento da IA?')) return;
+  
+  try {
+    const res = await fetch(`${API_BASE}/treinamento/problemas/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.sucesso) {
+      mostrarNotificacao_legacy('Regra removida da IA com sucesso!', 'success');
+      carregarTreinamentos();
+    } else {
+      mostrarNotificacao_legacy('Erro ao deletar: ' + data.erro, 'error');
+    }
+  } catch (error) {
+    mostrarNotificacao_legacy('Erro na conexão.', 'error');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const formTreino = document.getElementById('formNovoTreinamento');
+  if(formTreino) {
+    formTreino.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const payload = {
+        categoria: document.getElementById('treino-categoria').value,
+        descricao: document.getElementById('treino-descricao').value,
+        solucao: document.getElementById('treino-solucao').value,
+        palavras_chave: document.getElementById('treino-palavras').value,
+        prioridade: document.getElementById('treino-prioridade').value
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/treinamento/problemas`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        const data = await res.json();
+        
+        if (data.sucesso) {
+          mostrarNotificacao_legacy('IA treinada com novo conhecimento com sucesso!', 'success');
+          closeFormTreinamento();
+          carregarTreinamentos();
+        } else {
+          mostrarNotificacao_legacy('Erro ao treinar: ' + data.erro, 'error');
+        }
+      } catch (err) {
+        mostrarNotificacao_legacy('Erro grave na conexão', 'error');
+      }
+    });
+  }
+});
+
+// ==========================================
 // INICIALIZAÇÃO DO SISTEMA
 // ==========================================
 

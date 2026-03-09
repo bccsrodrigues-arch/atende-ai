@@ -1350,3 +1350,14 @@ input:checked + .slider:before {
     align-items: stretch;
   }
 }
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: var(--primary-light, #e2e8f0);
+  color: var(--primary-color, #1f2937);
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  display: inline-block;
+}

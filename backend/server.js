@@ -232,6 +232,70 @@ app.put('/api/clientes/:id', async (req, res) => {
 
 /**
  * ================================================
+ * ROTAS DE TREINAMENTO (BASE DE CONHECIMENTO)
+ * ================================================
+ */
+
+/**
+ * GET /api/treinamento/problemas
+ * Listar base de conhecimento (problemas resolvidos)
+ */
+app.get('/api/treinamento/problemas', async (req, res) => {
+  try {
+    const problemas = await dbService.listarProblemas();
+    res.json({ sucesso: true, dados: problemas });
+  } catch (error) {
+    res.status(500).json({ sucesso: false, erro: error.message });
+  }
+});
+
+/**
+ * POST /api/treinamento/problemas
+ * Treinar IA com novo problema/solução
+ */
+app.post('/api/treinamento/problemas', async (req, res) => {
+  try {
+    const { categoria, descricao, solucao, palavras_chave, prioridade } = req.body;
+
+    if (!categoria || !descricao || !solucao) {
+      return res
+        .status(400)
+        .json({ sucesso: false, erro: 'Categoria, descrição e solução são obrigatórios' });
+    }
+
+    const id = await dbService.adicionarProblema({
+      categoria,
+      descricao,
+      solucao,
+      palavras_chave,
+      prioridade,
+    });
+
+    if (!id) throw new Error('Falha ao adicionar ao banco de dados');
+    res
+      .status(201)
+      .json({ sucesso: true, mensagem: 'Base de conhecimento atualizada com sucesso', id });
+  } catch (error) {
+    res.status(500).json({ sucesso: false, erro: error.message });
+  }
+});
+
+/**
+ * DELETE /api/treinamento/problemas/:id
+ * Remover regra da IA
+ */
+app.delete('/api/treinamento/problemas/:id', async (req, res) => {
+  try {
+    const foiDeletado = await dbService.deletarProblema(req.params.id);
+    if (!foiDeletado) throw new Error('Não foi possível excluir (ID não confere ou bloqueado)');
+    res.json({ sucesso: true, mensagem: 'Regra removida da base de treinamento' });
+  } catch (error) {
+    res.status(500).json({ sucesso: false, erro: error.message });
+  }
+});
+
+/**
+ * ================================================
  * ROTAS DE IA (PROCESSAR TEXTO)
  * ================================================
  */

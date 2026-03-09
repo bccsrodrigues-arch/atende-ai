@@ -45,8 +45,10 @@
     // Hide dashboard grid
     document.querySelector('.dashboard-grid').style.display = 'none';
     
-    // Show back button or something
-    // For now, just show the section
+    // Call load functions if they exist
+    if (section === 'treinamento' && typeof carregarTreinamentos === 'function') {
+      carregarTreinamentos();
+    }
   }
 
   function showDashboard() {
@@ -105,6 +107,11 @@
           <div class="card-icon">🧠</div>
           <h3>IA</h3>
           <p>Teste a inteligência artificial</p>
+        </div>
+        <div class="dashboard-card" onclick="showSection('treinamento')">
+          <div class="card-icon">🎓</div>
+          <h3>Treinamento (RAG)</h3>
+          <p>Ensine novos conhecimentos à IA</p>
         </div>
       </div>
 
@@ -558,6 +565,64 @@
                 <button class="btn btn-secondary btn-small" id="btn-ouvir-resposta-ia" onclick="ouvirUltimaResposta()" disabled>🔊 Ouvir Resposta</button>
               </div>
             </div>
+          </div>
+        </section>
+
+        <!-- Treinamento Base Conhecimento -->
+        <section id="tab-treinamento" class="tab-content">
+          <button class="btn btn-secondary" onclick="showDashboard()">← Voltar ao Dashboard</button>
+          <h2>🎓 Treinamento da IA (Base de Conhecimento)</h2>
+          <p style="color: #6b7280; margin-bottom: 20px;">Use esta área para alimentar nossa IA com respostas, soluções e regras do seu negócio de modo que a IA passe a buscar essa informação em diálogos.</p>
+          
+          <button class="btn btn-primary" onclick="openFormAdicionarTreinamento()">➕ Novo Conhecimento/Regra</button>
+          
+          <div id="form-treinamento" class="form-container" style="display: none; margin-top: 15px;">
+            <h3>Ensinar a IA</h3>
+            <form id="formNovoTreinamento">
+              <div class="form-group">
+                <label>Categoria (Ex: Suporte, Vendas, Pagamentos)</label>
+                <input type="text" id="treino-categoria" required>
+              </div>
+              <div class="form-group">
+                <label>Descrição do Problema / Dúvida do Cliente</label>
+                <input type="text" id="treino-descricao" required placeholder="O que o cliente relatou ou perguntou?">
+              </div>
+              <div class="form-group">
+                <label>Solução ou Resposta a ser dada pela IA</label>
+                <textarea id="treino-solucao" rows="4" required placeholder="Como a IA deve resolver/responder para o cliente?"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Palavras-Chave (Separadas por vírgula)</label>
+                <input type="text" id="treino-palavras" placeholder="cartão, senha, fatura, erro...">
+              </div>
+              <div class="form-group">
+                <label>Prioridade da Regra (1-10)</label>
+                <input type="number" id="treino-prioridade" min="1" max="10" value="5">
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-success">Salvar Conhecimento</button>
+                <button type="button" class="btn btn-secondary" onclick="closeFormTreinamento()">Cancelar</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="table-container" style="margin-top:20px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Categoria</th>
+                  <th>Problema / Regra</th>
+                  <th>Palavras Chave</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-treinamentos">
+                <tr>
+                  <td colspan="5" class="text-center">Carregando...</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
 
