@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atende AI - Agente Inteligente de IA para Ligações</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Header Styles */
+    .header {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .logo {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #4f46e5;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-nav {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+
+    .btn-login {
+      background: transparent;
+      color: #4f46e5;
+      border: 1px solid #4f46e5;
+    }
+
+    .btn-login:hover {
+      background: #4f46e5;
+      color: white;
+    }
+
+    .btn-register {
+      background: #4f46e5;
+      color: white;
+    }
+
+    .btn-register:hover {
+      background: #4338ca;
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      animation: fadeIn 0.3s;
+    }
+
+    .modal-content {
+      background-color: white;
+      margin: 10% auto;
+      padding: 30px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      animation: slideIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close:hover {
+      color: black;
+    }
+
+    .tab-buttons {
+      display: flex;
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: #f0f0f0;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .tab-btn.active {
+      background: #4f46e5;
+      color: white;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    .btn-modal {
+      width: 100%;
+      padding: 12px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .btn-modal:hover {
+      background: #4338ca;
+    }
+
+    .home-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding-top: 70px; /* Account for fixed header */
+    }
+    .home-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .hero-section {
+      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+      color: white;
+      padding: 60px 20px;
+      text-align: center;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .hero-section h1 {
+      font-size: 3em;
+      margin-bottom: 20px;
+      font-weight: 700;
+    }
+
+    .hero-section p {
+      font-size: 1.3em;
+      margin-bottom: 30px;
+      opacity: 0.95;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 30px;
+      margin: 50px 0;
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .feature-card {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .feature-icon {
+      font-size: 3em;
+      margin-bottom: 15px;
+    }
+
+    .feature-card h3 {
+      color: #4f46e5;
+      margin-bottom: 10px;
+      font-size: 1.3em;
+    }
+
+    .feature-card p {
+      color: #6b7280;
+      font-size: 0.95em;
+      line-height: 1.6;
+    }
+
+    .cta-section {
+      background: #f9fafb;
+      padding: 50px 20px;
+      text-align: center;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+
+    .btn-cta {
+      padding: 15px 40px;
+      font-size: 1.1em;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-primary-cta {
+      background: #4f46e5;
+      color: white;
+    }
+
+    .btn-primary-cta:hover {
+      background: #4338ca;
+      transform: scale(1.05);
+    }
+
+    .btn-secondary-cta {
+      background: white;
+      color: #4f46e5;
+      border: 2px solid #4f46e5;
+    }
+
+    .btn-secondary-cta:hover {
+      background: #eef2ff;
+    }
+
+    .footer-home {
+      background: #1f2937;
+      color: white;
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .footer-home p {
+      margin: 10px 0;
+    }
+
+    @media (max-width: 768px) {
+      .hero-section h1 {
+        font-size: 2em;
+      }
+
+      .hero-section p {
+        font-size: 1.1em;
+      }
+
+      .cta-buttons {
+        flex-direction: column;
+      }
+
+      .btn-cta {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">🤖 Atende AI</div>
+    <div class="nav-buttons">
+      <button class="btn-nav btn-login" onclick="openModal('login')">Entrar</button>
+      <button class="btn-nav btn-register" onclick="openModal('register')">Cadastrar</button>
+    </div>
+  </header>
+
+  <!-- Auth Modal -->
+  <div id="authModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <div class="tab-buttons">
+        <button class="tab-btn active" onclick="switchTab('login')">Entrar</button>
+        <button class="tab-btn" onclick="switchTab('register')">Cadastrar</button>
+      </div>
+      
+      <div id="loginForm">
+        <h3>Entrar na sua conta</h3>
+        <form id="formLogin">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="loginEmail" required>
+          </div>
+          <div class="form-group">
+            <label>Senha</label>
+            <input type="password" id="loginPassword" required>
+          </div>
+          <button type="submit" class="btn-modal">Entrar</button>
+        </form>
+      </div>
+      
+      <div id="registerForm" style="display: none;">
+        <h3>Criar nova conta</h3>
+        <form id="formRegister">
+          <div class="form-group">
+            <label>Nome</label>
+            <input type="text" id="registerName" required>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="registerEmail" required>
+          </div>
+          <div class="form-group">
+            <label>Senha</label>
+            <input type="password" id="registerPassword" required minlength="6">
+          </div>
+          <button type="submit" class="btn-modal">Cadastrar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="home-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <h1>🤖 Atende AI</h1>
+        <p>Agente Inteligente de IA para Ligações</p>
+      </div>
+      <nav class="nav">
+        <a href="/">Início</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="#" onclick="logout()">Sair</a>
+      </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <h1>🤖 Bem-vindo ao Atende AI</h1>
+      <p>Um agente inteligente que gerencia suas chamadas com eficiência, personalização e segurança.</p>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⚙️</div>
+          <h3>Configuração Completa</h3>
+          <p>Personalize cada aspecto do seu agente de IA com configurações avançadas.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🧪</div>
+          <h3>Teste em Tempo Real</h3>
+          <p>Valide suas configurações antes de colocar em produção.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📞</div>
+          <h3>Atendimento Ativo</h3>
+          <p>Gerencie chamadas em tempo real com resposta automática inteligente.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📚</div>
+          <h3>Histórico Completo</h3>
+          <p>Mantenha registros de todos os atendimentos com filtros avançados.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔊</div>
+          <h3>Sistema de Voz</h3>
+          <p>Integração com síntese de fala natural e reconhecimento de voz.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Análise de Dados</h3>
+          <p>Acompanhe métricas e estatísticas dos seus atendimentos.</p>
+        </div>
+      </div>
+
+      <div class="cta-buttons">
+        <button class="btn-cta btn-primary-cta" onclick="openModal('register')">🚀 Começar Agora</button>
+        <a href="#about" class="btn-cta btn-secondary-cta">📖 Saiba Mais</a>
+      </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="cta-section" style="background: #f9fafb;">
+      <div style="max-width: 1000px; margin: 0 auto;">
+        <h2>O que é o Atende AI?</h2>
+        <p style="color: #6b7280; margin-top: 15px; font-size: 1.1em; line-height: 1.8; text-align: center;">
+          O <strong>Atende AI</strong> é uma plataforma revolucionária que utiliza inteligência artificial 
+          para automatizar e otimizar o atendimento ao cliente via telefone. Desenvolvido para empresas 
+          que buscam excelência no serviço, nossa solução oferece atendimento 24/7, personalizado e 
+          inteligente, reduzindo custos e aumentando a satisfação dos clientes.
+        </p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 50px;">
+          <div style="text-align: center;">
+            <h3 style="color: #4f46e5;">🤖 Tecnologia Avançada</h3>
+            <p>Utilizamos os mais recentes avanços em IA, incluindo processamento de linguagem natural, 
+            aprendizado de máquina e síntese de voz para criar experiências conversacionais naturais.</p>
+          </div>
+          <div style="text-align: center;">
+            <h3 style="color: #4f46e5;">🔒 Segurança e Privacidade</h3>
+            <p>Seus dados estão protegidos com criptografia de ponta a ponta, conformidade com LGPD 
+            e práticas de segurança enterprise-level.</p>
+          </div>
+          <div style="text-align: center;">
+            <h3 style="color: #4f46e5;">📈 Resultados Comprovados</h3>
+            <p>Nossos clientes relatam redução de 60% nos custos de atendimento e aumento de 40% 
+            na satisfação dos clientes após implementação.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="cta-section">
+      <div style="max-width: 1000px; margin: 0 auto;">
+        <h2>O que nossos clientes dizem</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 40px;">
+          <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <p style="font-style: italic; color: #6b7280; margin-bottom: 20px;">
+              "O Atende AI transformou completamente nosso atendimento. Agora conseguimos atender 
+              24/7 sem sobrecarregar nossa equipe, e a qualidade das respostas é impressionante."
+            </p>
+            <div style="display: flex; align-items: center;">
+              <div style="width: 50px; height: 50px; background: #4f46e5; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 15px;">MC</div>
+              <div>
+                <strong>Maria Clara</strong><br>
+                <span style="color: #6b7280; font-size: 0.9em;">CEO, TechCorp</span>
+              </div>
+            </div>
+          </div>
+          
+          <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <p style="font-style: italic; color: #6b7280; margin-bottom: 20px;">
+              "Implementamos o Atende AI em nossa central de atendimento e os resultados foram 
+              além das expectativas. Redução significativa de custos e clientes mais satisfeitos."
+            </p>
+            <div style="display: flex; align-items: center;">
+              <div style="width: 50px; height: 50px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 15px;">JR</div>
+              <div>
+                <strong>João Roberto</strong><br>
+                <span style="color: #6b7280; font-size: 0.9em;">Diretor de Operações, ServiCenter</span>
+              </div>
+            </div>
+          </div>
+          
+          <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <p style="font-style: italic; color: #6b7280; margin-bottom: 20px;">
+              "A facilidade de configuração e a inteligência do sistema nos permitiu personalizar 
+              o atendimento para diferentes segmentos de clientes. Altamente recomendado!"
+            </p>
+            <div style="display: flex; align-items: center;">
+              <div style="width: 50px; height: 50px; background: #f59e0b; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 15px;">AS</div>
+              <div>
+                <strong>Ana Silva</strong><br>
+                <span style="color: #6b7280; font-size: 0.9em;">Gerente de Vendas, MegaStore</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer-home">
+      <p><strong>© 2026 Atende AI</strong> - Agente Inteligente de IA</p>
+      <p>Gerenciamento de chamadas com inteligência artificial</p>
+      <p style="margin-top: 20px; font-size: 0.9em; opacity: 0.8;">
+        Desenvolvido com ❤️ para melhorar o atendimento ao cliente
+      </p>
+    </footer>
+  </div>
+
+  <script>
+    // Authentication functions
+    function openModal(tab = 'login') {
+      document.getElementById('authModal').style.display = 'block';
+      switchTab(tab);
+    }
+
+    function closeModal() {
+      document.getElementById('authModal').style.display = 'none';
+    }
+
+    function switchTab(tab) {
+      const loginForm = document.getElementById('loginForm');
+      const registerForm = document.getElementById('registerForm');
+      const loginBtn = document.querySelector('.tab-btn:nth-child(1)');
+      const registerBtn = document.querySelector('.tab-btn:nth-child(2)');
+
+      if (tab === 'login') {
+        loginForm.style.display = 'block';
+        registerForm.style.display = 'none';
+        loginBtn.classList.add('active');
+        registerBtn.classList.remove('active');
+      } else {
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+        loginBtn.classList.remove('active');
+        registerBtn.classList.add('active');
+      }
+    }
+
+    // Simple hash function for demo purposes
+    function hashPassword(password) {
+      let hash = 0;
+      for (let i = 0; i < password.length; i++) {
+        const char = password.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      return hash.toString();
+    }
+
+    // Login form handler
+    document.getElementById('formLogin').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      
+      const users = JSON.parse(localStorage.getItem('atendeAI_users') || '[]');
+      const user = users.find(u => u.email === email && u.password === hashPassword(password));
+      
+      if (user) {
+        localStorage.setItem('atendeAI_currentUser', JSON.stringify(user));
+        closeModal();
+        window.location.href = '/dashboard';
+      } else {
+        alert('Email ou senha incorretos!');
+      }
+    });
+
+    // Register form handler
+    document.getElementById('formRegister').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const name = document.getElementById('registerName').value;
+      const email = document.getElementById('registerEmail').value;
+      const password = document.getElementById('registerPassword').value;
+      
+      const users = JSON.parse(localStorage.getItem('atendeAI_users') || '[]');
+      
+      if (users.find(u => u.email === email)) {
+        alert('Este email já está cadastrado!');
+        return;
+      }
+      
+      const newUser = {
+        id: Date.now(),
+        name: name,
+        email: email,
+        password: hashPassword(password),
+        createdAt: new Date().toISOString()
+      };
+      
+      users.push(newUser);
+      localStorage.setItem('atendeAI_users', JSON.stringify(users));
+      localStorage.setItem('atendeAI_currentUser', JSON.stringify(newUser));
+      
+      closeModal();
+      window.location.href = '/dashboard';
+    });
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+      const modal = document.getElementById('authModal');
+      if (event.target === modal) {
+        closeModal();
+      }
+    }
+
+    function logout() {
+      if (confirm('Deseja sair do sistema?')) {
+        localStorage.removeItem('atendeAI_currentUser');
+        window.location.href = '/';
+      }
+    }
+
+    // Check if user is logged in on page load
+    window.addEventListener('load', function() {
+      const currentUser = localStorage.getItem('atendeAI_currentUser');
+      if (currentUser && window.location.pathname === '/') {
+        window.location.href = '/dashboard';
+      }
+      
+      // Animation for feature cards
+      document.querySelectorAll('.feature-card').forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          card.style.transition = 'all 0.5s ease';
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, index * 100);
+      });
+    });
+  </script>
+</body>
+</html>

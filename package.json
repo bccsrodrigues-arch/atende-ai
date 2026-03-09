@@ -1,0 +1,31 @@
+{
+  "name": "atende-ai",
+  "version": "0.1.0",
+  "description": "POC: Financial Snapshot Visualizer - demo para Atende AI (PT-BR)",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "start:voice": "cd voice-agent && node backend/server.js",
+    "dev:voice": "cd voice-agent && node --watch backend/server.js",
+    "client:voice": "cd voice-agent && cd frontend && npx http-server",
+    "setup-db:voice": "cd voice-agent && node database/init-db.js",
+    "setup": "./setup.sh",
+    "test": "./test.sh"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "sqlite3": "^5.1.6",
+    "openai": "^4.20.0",
+    "twilio": "^5.0.0",
+    "uuid": "^9.0.1",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
