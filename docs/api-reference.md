@@ -1,211 +1,30 @@
-# Referência da API
+# Referência da API (Atende AI)
 
-Documentação completa de todos os endpoints disponíveis nos sistemas **Atende AI** e **Voice Agent**.
+Todos os endpoints da API estão localizados sob o caminho `/api*` do host. Por padrão: `http://localhost:3000`.
 
-## Formato de Resposta Padrão
+## Grupo de Rotas Principais
 
-Todas as respostas seguem este formato:
+### [Voz - Integração Twilio]
 
-```json
-// Sucesso
-{
-  "sucesso": true,
-  "dados": { ... }
-}
+Atuam manipulando webhooks (comandos assíncronos gerados pela API da ligação do cliente).
 
-// Erro
-{
-  "sucesso": false,
-  "erro": "descrição do erro"
-}
-```
+- **POST /api/voz/receber**: Receber chamada. Identifica autor. Devolve TwiML.
+- **POST /api/voz/processar**: Responde do processamento Gather na call principal ou repassa (via TwiML).
+- **POST /api/voz/status**: Notificação de status event webhook da ligação em andamento, cancelamento ou conclusão.
 
----
+### [Dashboard Admin Clientes]
 
-## Atende AI (Servidor Raiz - porta 3000)
+Retorno e criação de usuários cadastrados do banco local.
 
-### GET /
+- **GET /api/clientes**: Todos os clientes salvos (`limite=20, pagina=1`)
+- **GET /api/clientes/:id**: Cliente individual
+- **POST /api/clientes**: Novo cadastro
+- **PUT /api/clientes/:id**: Atualizar cliente
 
-Página inicial com instruções.
+### [Serviço IA e Chamadas Internas]
 
-### GET /health
+Trata de simular ou executar internamente as requisições de prompt sem depender da ligação (via chat no dashboard).
 
-Verificar status do servidor.
-
-- **Resposta**: `{ "status": "ok" }`
-
-### POST /api/posts
-
-Enviar payload para publicação.
-
-- **Body**: `{ "title": "string", "data": "string" }`
-- **Resposta**: `{ "status": "saved", "id": number }`
-
----
-
-## Voice Agent (porta 3000)
-
-### Saúde e Status
-
-#### GET /api/health
-
-Status do servidor Voice Agent.
-
-#### GET /api/admin/estatisticas
-
-Estatísticas gerais do sistema.
-
-- **Resposta**:
-
-```json
-{
-  "sucesso": true,
-  "estatisticas": {
-    "total_clientes": 2,
-    "total_chamadas": 0,
-    "chamadas_resolvidas": 0,
-    "chamadas_transferidas": 0,
-    "taxa_resolucao": "0.00%"
-  }
-}
-```
-
-#### GET /api/admin/dashboard
-
-Dados completos para o dashboard admin.
-
-### Clientes
-
-#### GET /api/clientes
-
-Listar clientes com paginação.
-
-- **Query**: `?page=1&perPage=20`
-
-#### GET /api/clientes/:id
-
-Obter detalhes de um cliente específico + histórico de chamadas.
-
-#### POST /api/clientes
-
-Criar novo cliente.
-
-- **Body**:
-
-```json
-{
-  "nome": "string (obrigatório)",
-  "telefone": "string (obrigatório)",
-  "email": "string (obrigatório)",
-  "cpf_cnpj": "string (opcional)",
-  "endereco": "string (opcional)",
-  "dados_importantes": "string (opcional)"
-}
-```
-
-#### PUT /api/clientes/:id
-
-Atualizar dados de um cliente.
-
-- **Body**: campos a serem atualizados (parcial)
-
-### IA (Processamento de Texto)
-
-#### POST /api/ia/processar
-
-Processar mensagem de texto com IA.
-
-- **Body**:
-
-```json
-{
-  "mensagem": "string (obrigatório)",
-  "cliente_id": "number (opcional)",
-  "historico": "array (opcional)"
-}
-```
-
-- **Resposta**:
-
-```json
-{
-  "sucesso": true,
-  "resposta": {
-    "sucesso": true,
-    "resposta": "texto da resposta",
-    "intencao": "categoria",
-    "confianca": 0.8,
-    "deve_transferir": false,
-    "solucao_aplicada": true,
-    "categoria_solucao": "Pagamento"
-  }
-}
-```
-
-#### POST /api/ia/analise-intencao
-
-Analisar intenção do texto do usuário.
-
-- **Body**: `{ "mensagem": "string" }`
-
-### Chamadas
-
-#### GET /api/chamadas/historico/:cliente_id
-
-Histórico de chamadas de um cliente.
-
-### Voz / Twilio (Webhooks internos)
-
-> Estes endpoints são usados pelo Twilio como webhooks. Não chamar diretamente.
-
-#### POST /api/voz/chamada-recebida
-
-Webhook para chamada recebida. Retorna TwiML.
-
-#### POST /api/voz/processar-input
-
-Webhook para processar input de voz/teclado.
-
-#### POST /api/voz/confirmar-resolucao
-
-Webhook para confirmar se problema foi resolvido.
-
-#### POST /api/voz/mensagem-registrada
-
-Webhook para mensagem de voz deixada.
-
-### Páginas HTML
-
-#### GET /
-
-Página principal do Voice Agent.
-
-#### GET /dashboard
-
-Dashboard admin do Voice Agent.
-
----
-
-## Exemplos cURL
-
-### Criar cliente
-
-```bash
-curl -X POST http://localhost:3000/api/clientes \
-  -H "Content-Type: application/json" \
-  -d '{"nome":"Maria","telefone":"+5511999","email":"maria@ex.com"}'
-```
-
-### Testar IA
-
-```bash
-curl -X POST http://localhost:3000/api/ia/processar \
-  -H "Content-Type: application/json" \
-  -d '{"mensagem":"Meu cartão de crédito foi recusado","cliente_id":1}'
-```
-
-### Ver estatísticas
-
-```bash
-curl http://localhost:3000/api/admin/estatisticas
-```
+- **POST /api/ia/mensagem**: Recebe mensagem do front ou hook externo -> interpreta modelo e gera resposta de IA.
+- **GET /api/chamadas**: Listagem de todas interações em call (`limite=50, pagina=1`).
+- **GET /api/admin/estatisticas**: Gráficos e totais para a tela inicial do adm.

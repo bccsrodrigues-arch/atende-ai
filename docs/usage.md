@@ -1,86 +1,36 @@
-# Como Usar os Sistemas
+# Como Usar o Atende AI
 
-Guia de uso para **Atende AI** e **Voice Agent**.
+Após finalizar seu ambiente de desenvolvimento (`npm run setup-db`, configurando `.env` e disparando com `npm start`), o Atende AI dispõe das seguintes chaves de interação:
 
-## Atende AI
+## Painel (Dashboard Web Admin)
 
-### API Endpoints
+- Abra seu navegador em `http://localhost:8080/dashboard.html` (ou outra porta rodada via servidor HTTP).
+- Aqui você terá acesso irrestrito às opções: visualizar ligações, criar/alterar clientes, interagir e listar agentes IA atendentes, além de verificar os erros da API.
 
-- `GET /health`: Verifica status do servidor
-- `POST /api/posts`: Envia payload para publicação
-  - Body: `{ "title": "string", "data": "string" }`
-  - Resposta: `{ "status": "saved", "id": number }`
+## API Backend
 
-### Fluxo de Uso
+Para as implementações automatizadas, interações sem servidor frontend visual, você pode testar com a ferramenta cURL e outras (Postman/Insomnia/Thunder Client):
 
-1. Gere conteúdo no frontend.
-2. Envie POST para o backend.
-3. N8N processa e publica automaticamente.
-
-### Exemplo cURL
+`POST /api/ia/mensagem` -> Dispara um evento para IA da hugging-face ou de integração configurada simulando cliente, ex:
 
 ```bash
-curl -X POST http://localhost:3000/api/posts \
+curl -X POST http://localhost:3000/api/ia/mensagem \
   -H "Content-Type: application/json" \
-  -d '{"title":"Meu Post","data":"Conteúdo aqui"}'
+  -d '{"chamadaId": "CA...", "clienteId": 1, "mensagem": "Quero falar sobre boleto bancário atrasado"}'
 ```
 
-## Voice Agent
-
-### Dashboard
-
-Acesse http://localhost:3000/dashboard para:
-
-- Visualizar estatísticas de chamadas
-- Gerenciar clientes (adicionar/editar)
-- Testar IA com prompts
-- Ver histórico de interações
-
-### Funcionalidades
-
-- **Recebimento de Chamadas**: Configure webhook no Twilio para `/api/twilio/webhook`
-- **IA Conversacional**: Processa voz/texto, analisa intenção, responde ou roteia
-- **Banco de Dados**: CRUD para clientes, problemas conhecidos, atendentes
-
-### API Endpoints (Backend)
-
-- `GET /api/health`: Status
-- `GET /api/clients`: Lista clientes
-- `POST /api/clients`: Adiciona cliente
-- `POST /api/test-ia`: Testa IA com prompt
-- `POST /api/twilio/webhook`: Webhook para chamadas (usado internamente)
-
-### Exemplo de Teste IA
+Se precisar listar os clientes:
 
 ```bash
-curl -X POST http://localhost:3000/api/test-ia \
-  -H "Content-Type: application/json" \
-  -d '{"prompt":"Olá, como posso ajudar?"}'
+curl http://localhost:3000/api/clientes
 ```
 
-### Configuração de Chamadas
+## Telefonia Webhooks (Twilio)
 
-1. Configure número Twilio.
-2. Defina webhook para o endpoint do backend.
-3. Ligue para o número para testar.
+Seu número virtual no Twilio deverá estar configurado para disparar requisições em eventos de ligação (Voice) aos endereços base expostos publicamente via `ngrok` ou algo similar (`http://seu-dominio-ngrok.ngrok-free.app/api/voz/receber`).
 
-### Gerenciamento de Clientes
-
-- Use o dashboard para CRUD.
-- Dados incluem nome, telefone, histórico.
-
-### Roteamento
-
-- IA detecta quando transferir para atendente.
-- Seleciona baseado em especialidade.
-
-## Segurança
-
-- Nunca exponha chaves API.
-- Use HTTPS em produção.
-- Valide inputs para prevenir injeções.
-
-## Monitoramento
-
-- Logs no console do backend.
-- Dashboard para métricas em tempo real.
+```
+1. Receber chamada (ngrok direciona ao backend express local rotas `/api/voz/receber`)
+2. IA responde.
+3. Repetição (loop Twilio de "Gather").
+```

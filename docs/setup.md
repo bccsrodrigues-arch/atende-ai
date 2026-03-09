@@ -1,67 +1,58 @@
-# Instalação e Setup
+# Guia de Configuração (Setup)
 
-Este guia cobre a instalação e configuração dos sistemas **Atende AI** e **Voice Agent**.
+Siga estas instruções diretas para rodar o **Atende AI** na sua máquina local.
 
-## Pré-requisitos
+## 1. Pré-requisitos
 
-- Node.js 16+ instalado
-- npm ou yarn
-- Git
+- **Node.js**: Versão 18 ou superior.
+- **Git**: Para clonagem e versão.
+- **Conta Twilio** (opcional para rodar localmente sem voz real, obrigatório para produção).
+- **Conta OpenAI / HF** (opcional, requer token para as interações reais de IA).
 
-## Instalação Centralizada
+## 2. Instalação Completa
 
-Execute o script de setup unificado:
-
-```bash
-chmod +x setup.sh
-./setup.sh
-```
-
-Ou manualmente:
+O projeto usa NPM, então basta rodar `npm install` na pasta principal. Já preparamos um script que faz tudo para você na inicialização.
 
 ```bash
-npm install  # Instala todas as dependências
-npm run setup-db:voice  # Inicializa banco Voice Agent
+git clone https://github.com/bccsrodrigues-arch/atende-ai.git
+cd atende-ai
+npm install
 ```
 
-## Configuração de APIs (Voice Agent)
+## 3. Variáveis de Ambiente
 
-### OpenAI
-
-- Obtenha chave em https://platform.openai.com
-- Adicione a `OPENAI_API_KEY` no `voice-agent/.env`
-
-### Twilio
-
-- Obtenha SID e token em https://www.twilio.com
-- Configure webhook para `https://your-domain/voice-agent/api/twilio/webhook`
-- Adicione `TWILIO_ACCOUNT_SID` e `TWILIO_AUTH_TOKEN` no `voice-agent/.env`
-
-## Executando os Sistemas
-
-### Atende AI
+O arquivo `.env.example` se encontra na raiz do repositório. O processo é o mesmo para colocar os segredos:
 
 ```bash
-npm start  # Porta 3000
+cp .env.example .env
 ```
 
-### Voice Agent
+_Logo em seguida, insira no arquivo `.env` suas credenciais da OpenAI, Twilio, etc._
+
+## 4. Inicializando o Banco de Dados
+
+Crie as tabelas locais (SQLite) usando o script já fornecido:
 
 ```bash
-npm run start:voice      # Backend na porta 3000
-npm run client:voice     # Frontend na porta 8080
+npm run setup-db
 ```
 
-## Testes
+Isso gera o arquivo dentro da pasta `database/`.
 
-Execute o script de teste unificado:
+## 5. Rodando Localmente
 
-```bash
-./test.sh
-```
+Temos vários scripts úteis no `package.json`:
 
-Ou manualmente:
+- **Ouvir as chamadas da API Backend (dev com hot-reload):**
 
-```bash
-npm test
-```
+  ```bash
+  npm run dev
+  ```
+
+- **Servir o painel Frontend Dashboard:**
+  ```bash
+  npm run client
+  ```
+  Isso irá rodar localmente com `npx http-server`. Acesse a porta informada pelo terminal (normalmente 8080).
+
+E pronto, você já estará em execução!

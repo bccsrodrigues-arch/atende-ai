@@ -1,6 +1,4 @@
 node_modules
-voice-agent/node_modules
-data
 *.db
-voice-agent/frontend/script.js
+frontend/
 package-lock.json

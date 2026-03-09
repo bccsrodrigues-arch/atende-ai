@@ -42,9 +42,7 @@ export default [
     // Ignorar arquivos que não devemos verificar
     ignores: [
       'node_modules/**',
-      'voice-agent/node_modules/**',
-      'data/**',
-      'voice-agent/frontend/script.js', // Frontend legado grande, limpar depois
+      'frontend/script.js', // Frontend legado grande, limpar depois
     ],
   },
 ];

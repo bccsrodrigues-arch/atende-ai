@@ -1,36 +1,12 @@
 # Arquitetura do Sistema
 
-Este repositório contém dois sistemas principais: **Atende AI** (POC para geração e publicação de conteúdo) e **Voice Agent** (sistema de atendimento telefônico com IA).
+Este repositório contém o sistema **Atende AI**: um software completo e unificado para atendimento telefônico e virtual com IA.
 
 ## Atende AI
 
 ### Objetivo
 
-POC/MVP simples que gera conteúdo (texto/imagem) e publica como demonstração (ex.: LinkedIn). Arquitetura mínima e 100% viável com ferramentas gratuitas.
-
-### Componentes
-
-- **Frontend**: Interface para usuário gerar/visualizar conteúdo e acionar envio (Lovable/no-code ou HTML+JS).
-- **Backend**: Node.js + Express para validação, armazenamento opcional e envio para webhook N8N.
-- **Automações**: N8N workflow para processar payload, enriquecer (gerar imagem) e publicar via APIs.
-- **Armazenamento**: Supabase (gratuito) ou SQLite local para rascunhos.
-
-### Fluxo de Dados
-
-1. Usuário → Frontend: cria conteúdo.
-2. Frontend → Backend: POST /api/posts → valida e encaminha para N8N.
-3. N8N → processa, persiste e publica.
-
-### Segurança
-
-- Tokens/segredos nunca no frontend.
-- Variáveis de ambiente no backend/N8N.
-
-## Voice Agent
-
-### Objetivo
-
-Sistema completo para atendimento telefônico com IA humanizada, banco de dados de clientes e roteamento inteligente.
+Sistema completo para atendimento telefônico com IA humanizada, banco de dados de clientes e roteamento inteligente. O principal objetivo é reduzir o tempo de espera do cliente e automatizar as respostas iniciais utilizando IA, redirecionando para agentes humanos apenas quando necessário.
 
 ### Componentes
 
@@ -56,6 +32,6 @@ Sistema completo para atendimento telefônico com IA humanizada, banco de dados 
 
 ## Considerações Gerais
 
-- Ambos sistemas usam Node.js, focam em simplicidade e ferramentas gratuitas.
-- Separação clara entre frontend/backend.
-- Segurança com variáveis de ambiente e validação de dados.
+- O sistema usa Node.js, foca em simplicidade e ferramentas gratuitas para a fase atual.
+- Separação clara entre frontend/backend através do isolamento das pastas `frontend/` e `backend/`.
+- Segurança com variáveis de ambiente (`.env`) e validação de dados nas chamadas.

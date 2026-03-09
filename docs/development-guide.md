@@ -1,181 +1,51 @@
-# Guia de Desenvolvimento
+# Guia de Desenvolvimento e Contribuição
 
-Guia para contribuição e desenvolvimento do projeto **Atende AI** e **Voice Agent**.
+Bem-vindo ao Atende AI! Como explicamos, este documento atua como referência sobre como se envolver, testar e manter o código usando as metodologias adotadas internamente.
 
-## Pré-requisitos
+---
 
-- Node.js 18+
-- npm
-- Git
-- Editor de código (VS Code recomendado)
+## Para Iniciantes
 
-## Configuração do Ambiente
+Se você está começando (como o autor do projeto), leia isso primeiro:
 
-### 1. Clonar e instalar
+- **Express.js**: Backend framework - as chamadas recebidas ocorrem pelas rotas dentro do projeto de forma sequencial, processando pelo controller até devolver os dados.
+- **SQLite**: Local. Uma grande vantagem de não gerenciar tabelas pesadas. Use `npm run setup-db` e não precisará configurar mais nada, as tabelas serão recriadas limpas.
+- **Git Hooks (Husky)**: Antes do commit acontecer, nosso sistema local irá forçar o ESLint e Prettier verificando a quebra ou os estilos sem padronização. Se der erro no terminal e proibir a ação, isso é intencional. Leia os warnings/erros e refaça caso apareçam antes de recomeçar seu `git add/commit`.
 
-```bash
-git clone <url-do-repo>
-cd atende-ai
-npm install
-cd voice-agent && npm install && cd ..
-```
+---
 
-### 2. Configurar variáveis de ambiente
+## 2. Estrutura do Código
 
-```bash
-cp voice-agent/.env.example voice-agent/.env
-# Editar voice-agent/.env com suas chaves
-```
+Para não criar uma enorme árvore dependente, a arquitetura agora em raiz (`/backend`, `/frontend`, `/database`) foca as funções de:
 
-### 3. Inicializar banco de dados
+- `/backend/voz-service.js` manipula puramente chamadas webhooks vindas de sistemas de telefonia (Twilio).
+- `/backend/ia-service.js` gerador e validador local de tokens/linguagem para enviar como response de voz na chamada Twilio (huggingface / api chatgpt)
+- `server.js` abriga o Express e o roteamento principal.
 
-```bash
-npm run setup-db:voice
-```
+---
 
-## Padrões de Código
+## 3. Práticas Recomendadas Obrigatórias
 
-### Estilo
+- **Variáveis (`.env`)**:
+  - Evite chaves API. Sempre que alterar em código um segredo, não o declare solto. Teste-o, extraia para `process.env.TEST_KEY`, use `.env`. O gitignore está configurado para te proteger.
 
-- **Linguagem**: JavaScript ES6+ com ES Modules (`import`/`export`)
-- **Nomenclatura**: camelCase para variáveis e funções, PascalCase para classes
-- **Comentários**: em português (PT-BR)
-- **Indentação**: 2 espaços
-- **Aspas**: aspas simples (`'`)
-- **Ponto e vírgula**: sempre usar
+- **Comandos / CLI**:
 
-### Estrutura de Arquivos
+  ```bash
+  npm run dev
+  # Observa alterações no backend e reinicia o nodemon
 
-- Cada arquivo deve conter um único serviço/responsabilidade
-- Nomes de arquivos em kebab-case (ex: `ia-service.js`, `init-db.js`)
-- Manter a separação: `backend/`, `database/`, `frontend/`
+  npm run client
+  # Inicia server local na pasta frontend
 
-### Tratamento de Erros
+  npm run format
+  npm run lint
+  # Checa seu status antes do Husky ser invocado em commit manual.
+  ```
 
-Toda função assíncrona deve ter try/catch:
+---
 
-```javascript
-export const minhaFuncao = async (parametro) => {
-  try {
-    // lógica
-    return resultado;
-  } catch (error) {
-    console.error('Erro ao fazer X:', error);
-    return null; // ou throw para propagar
-  }
-};
-```
+## 4. Próxima Fase
 
-### Respostas da API
-
-Formato padronizado para todas as respostas:
-
-```javascript
-// Sucesso
-res.json({ sucesso: true, dados: resultado });
-
-// Erro de validação
-res.status(400).json({ sucesso: false, erro: 'campo obrigatório' });
-
-// Erro interno
-res.status(500).json({ sucesso: false, erro: error.message });
-```
-
-## Ferramentas de Qualidade
-
-### ESLint (Linter)
-
-Verifica erros e padrões de código:
-
-```bash
-npx eslint .           # Verificar
-npx eslint . --fix     # Corrigir automaticamente
-```
-
-### Prettier (Formatter)
-
-Formata o código automaticamente:
-
-```bash
-npx prettier --check .    # Verificar
-npx prettier --write .    # Formatar
-```
-
-### Pre-commit Hooks
-
-Os hooks de pre-commit rodam automaticamente antes de cada commit:
-
-- ESLint: verifica erros de código
-- Prettier: verifica formatação
-
-## Banco de Dados
-
-### SQLite
-
-O projeto usa SQLite para desenvolvimento. O banco fica em:
-
-- `voice-agent/backend/database.db` (usado pelo backend)
-- `voice-agent/database/database.db` (criado pelo init-db.js)
-
-### Tabelas Principais
-
-1. **clientes** - Dados dos clientes
-2. **chamadas** - Histórico de chamadas
-3. **atendentes** - Atendentes humanos
-4. **interacoes_ia** - Log de interações com a IA
-5. **problemas_conhecidos** - Base de conhecimento
-
-### Resetar banco
-
-```bash
-rm voice-agent/database/database.db voice-agent/backend/database.db
-npm run setup-db:voice
-```
-
-## Scripts Disponíveis
-
-| Script         | Comando                  | Descrição                         |
-| -------------- | ------------------------ | --------------------------------- |
-| start          | `npm start`              | Servidor Atende AI (porta 3000)   |
-| start:voice    | `npm run start:voice`    | Backend Voice Agent (porta 3000)  |
-| dev:voice      | `npm run dev:voice`      | Backend com hot-reload            |
-| client:voice   | `npm run client:voice`   | Frontend Voice Agent (porta 8080) |
-| setup-db:voice | `npm run setup-db:voice` | Inicializar banco SQLite          |
-| setup          | `npm run setup`          | Setup completo do projeto         |
-| test           | `npm test`               | Rodar testes                      |
-
-## Fluxo de Trabalho (Git)
-
-### Branches
-
-- `main` - código estável de produção
-- `develop` - código em desenvolvimento
-- `feature/nome-da-feature` - novas funcionalidades
-- `fix/nome-do-bug` - correções de bugs
-
-### Processo
-
-1. Criar branch a partir de `develop`
-2. Desenvolver a feature
-3. Rodar lint + testes
-4. Criar Pull Request para `develop`
-5. Após revisão, merge para `develop`
-6. Periodicamente, merge `develop` → `main`
-
-## Conceitos Importantes para Iniciantes
-
-### O que é uma API REST?
-
-API (Interface de Programação) é a forma como programas se comunicam. REST é um padrão que usa URLs e métodos HTTP (GET, POST, PUT, DELETE) para organizar essa comunicação.
-
-### O que é Middleware?
-
-Middleware é código que roda entre receber o request e enviar o response. Exemplos: `cors()` permite acesso de outros domínios, `express.json()` converte o body para JSON.
-
-### O que é TwiML?
-
-TwiML (Twilio Markup Language) é o formato XML que o Twilio entende para controlar chamadas (falar texto, coletar input, transferir, gravar, etc).
-
-### O que são Variáveis de Ambiente?
-
-São valores secretos (senhas, chaves de API) que ficam no arquivo `.env` e nunca vão para o Git. O programa lê com `process.env.NOME_DA_VARIAVEL`.
+- Estudar a aplicação Jest (framework) nas chamadas do `ia-service` para cobrir o funcionamento unitário e detectar anomalias.
+- Automatizar testes no GitHub Actions (CI).

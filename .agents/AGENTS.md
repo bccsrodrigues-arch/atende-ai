@@ -2,10 +2,7 @@
 
 ## Sobre o Projeto
 
-**Atende AI** é uma plataforma de atendimento inteligente com dois sistemas principais:
-
-1. **Atende AI (raiz)** - POC para geração e publicação de conteúdo (ex: LinkedIn)
-2. **Voice Agent** - Sistema de atendimento telefônico com IA humanizada
+**Atende AI** é um sistema completo de atendimento telefônico e virtual com IA humanizada. O objetivo é fornecer atendimento inteligente, análise de intenção e busca em base de conhecimento, visando resolução rápida de problemas ou roteamento para atendentes reais.
 
 ## Sobre o Desenvolvedor
 
@@ -33,7 +30,7 @@
 - **IA**: Hugging Face (gratuito) / OpenAI GPT-4 (futuro)
 - **Telefonia**: Twilio (chamadas, TTS, STT)
 - **Automação**: N8N (workflows)
-- **Frontend**: HTML/CSS/JS vanilla (Voice Agent), Lovable/no-code (Atende AI)
+- **Frontend**: HTML/CSS/JS vanilla (Dashboard admin e painel principal)
 - **Controle de Versão**: Git + GitHub
 
 ### Padrões de Código
@@ -73,28 +70,23 @@
 
 ```
 atende-ai/
-├── server.js              # Servidor POC Atende AI (simples)
 ├── package.json           # Dependências raiz
-├── setup.sh               # Script de setup centralizado
-├── test.sh                # Script de teste centralizado
-├── data/                  # Dados locais (gitignored)
 ├── docs/                  # Documentação oficial (4-6 docs centrais)
-├── voice-agent/           # Sistema Voice Agent completo
-│   ├── backend/
-│   │   ├── server.js      # Servidor Express principal
-│   │   ├── database.js    # Serviço de banco de dados
-│   │   ├── ia-service.js  # Serviço de IA (Hugging Face)
-│   │   └── voz-service.js # Serviço de voz (Twilio)
-│   ├── database/
-│   │   ├── init-db.js     # Inicializador do banco SQLite
-│   │   └── database.db    # Banco de dados SQLite
-│   ├── frontend/
-│   │   ├── index.html     # Página principal
-│   │   ├── dashboard.html # Dashboard admin
-│   │   ├── script.js      # Lógica do frontend
-│   │   └── styles.css     # Estilos
-│   ├── .env.example       # Exemplo de variáveis de ambiente
-│   └── EXEMPLOS.js        # Exemplos de uso e integração
+├── backend/
+│   ├── server.js      # Servidor Express principal
+│   ├── database.js    # Serviço de banco de dados
+│   ├── ia-service.js  # Serviço de IA (Hugging Face)
+│   └── voz-service.js # Serviço de voz (Twilio)
+├── database/
+│   ├── init-db.js     # Inicializador do banco SQLite
+│   └── database.db    # Banco de dados SQLite
+├── frontend/
+│   ├── index.html     # Página principal
+│   ├── dashboard.html # Dashboard admin
+│   ├── script.js      # Lógica do frontend
+│   └── styles.css     # Estilos
+├── .env.example       # Exemplo de variáveis de ambiente
+├── EXEMPLOS.js        # Exemplos de uso e integração
 └── .agents/
     ├── AGENTS.md           # Este arquivo
     └── workflows/          # Workflows padronizados
@@ -102,19 +94,14 @@ atende-ai/
 
 ## Estado Atual do Projeto (Março 2026)
 
-- **Fase**: POC/MVP inicial
-- **Voice Agent**: Backend funcional com Express, SQLite, integração Twilio e Hugging Face
-- **Atende AI (raiz)**: Servidor mínimo HTTP puro (sem Express) para receber posts
-- **Frontend Voice Agent**: Dashboard e página principal com HTML/CSS/JS
-- **CI/CD**: Não configurada ainda (próximo passo)
-- **Testes**: Apenas scripts bash básicos (test.sh), sem testes unitários
-- **Git**: Repositório com .gitignore básico
+- **Fase**: Desenvolvimento inicial / MVP
+- **Atende AI**: Backend funcional com Express, SQLite, integração Twilio e Hugging Face. Unificamos o projeto para remover a complexidade de múltiplos sub-projetos.
+- **Frontend**: Dashboard e página principal com HTML/CSS/JS
+- **CI/CD**: ESLint, Prettier, Husky (pre-commit) implementados
+- **Testes**: Sem testes unitários (implementações futuras necessárias)
+- **Git**: Repositório provisionado e estruturado
 
 ## Problemas Conhecidos / Riscos
 
-1. **Segurança**: `.env.example` contém chaves API reais expostas (MUITO GRAVE)
-2. **Inconsistência de portas**: Atende AI e Voice Agent ambos usam porta 3000
-3. **Sem testes automatizados**: Nenhum teste unitário/integração
-4. **Sem CI/CD**: Nenhum pipeline configurado
-5. **Sem linting/formatting**: Nenhuma ferramenta de qualidade de código
-6. **`global` para estado**: `voz-service.js` usa `global.chamadasAtivas` (anti-pattern)
+1. **Sem testes automatizados**: Nenhum teste unitário/integração
+2. **`global` para estado**: `voz-service.js` usa `global.chamadasAtivas` (anti-pattern)
