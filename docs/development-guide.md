@@ -10,7 +10,7 @@ Se você está começando (como o autor do projeto), leia isso primeiro:
 
 - **Express.js**: Backend framework - as chamadas recebidas ocorrem pelas rotas dentro do projeto de forma sequencial, processando pelo controller até devolver os dados.
 - **SQLite**: Local. Uma grande vantagem de não gerenciar tabelas pesadas. Use `npm run setup-db` e não precisará configurar mais nada, as tabelas serão recriadas limpas.
-- **Git Hooks (Husky)**: Antes do commit acontecer, nosso sistema local irá forçar o ESLint e Prettier verificando a quebra ou os estilos sem padronização. Se der erro no terminal e proibir a ação, isso é intencional. Leia os warnings/erros e refaça caso apareçam antes de recomeçar seu `git add/commit`.
+- **Git Hooks (Husky)**: Antes do commit acontecer, nosso sistema local irá forçar o Biome verificando a sintaxe e padrões. Se der erro no terminal e proibir a ação, isso é intencional. Leia os warnings/erros e refaça caso apareçam antes de recomeçar seu `git add/commit`.
 
 ---
 

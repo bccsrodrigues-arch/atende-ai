@@ -6,44 +6,44 @@
  * Todas as operações CRUD para clientes, chamadas, etc.
  */
 
-import sqlite3 from 'sqlite3';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { v4 as uuidv4 } from 'uuid';
+import path from "path";
+import sqlite3 from "sqlite3";
+import { fileURLToPath } from "url";
+import { v4 as uuidv4 } from "uuid";
 
 // Configurar caminho do banco de dados
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, 'database.db');
+const dbPath = path.join(__dirname, "database.db");
 
 // Criar conexão com o banco
 const db = new sqlite3.Database(dbPath);
 
 // Promisificar operações do banco para usar async/await
 const runAsync = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) reject(err);
-      else resolve(this);
-    });
-  });
+	return new Promise((resolve, reject) => {
+		db.run(sql, params, function (err) {
+			if (err) reject(err);
+			else resolve(this);
+		});
+	});
 };
 
 const getAsync = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
+	return new Promise((resolve, reject) => {
+		db.get(sql, params, (err, row) => {
+			if (err) reject(err);
+			else resolve(row);
+		});
+	});
 };
 
 const allAsync = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
+	return new Promise((resolve, reject) => {
+		db.all(sql, params, (err, rows) => {
+			if (err) reject(err);
+			else resolve(rows);
+		});
+	});
 };
 
 /**
@@ -56,13 +56,16 @@ const allAsync = (sql, params = []) => {
  * @returns {Promise<Object>} Dados do cliente
  */
 export const buscarClientePorTelefone = async (telefone) => {
-  try {
-    const cliente = await getAsync('SELECT * FROM clientes WHERE telefone = ?', [telefone]);
-    return cliente;
-  } catch (error) {
-    console.error('Erro ao buscar cliente por telefone:', error);
-    return null;
-  }
+	try {
+		const cliente = await getAsync(
+			"SELECT * FROM clientes WHERE telefone = ?",
+			[telefone],
+		);
+		return cliente;
+	} catch (error) {
+		console.error("Erro ao buscar cliente por telefone:", error);
+		return null;
+	}
 };
 
 /**
@@ -71,13 +74,15 @@ export const buscarClientePorTelefone = async (telefone) => {
  * @returns {Promise<Object>} Dados do cliente
  */
 export const buscarClientePorId = async (clienteId) => {
-  try {
-    const cliente = await getAsync('SELECT * FROM clientes WHERE id = ?', [clienteId]);
-    return cliente;
-  } catch (error) {
-    console.error('Erro ao buscar cliente por ID:', error);
-    return null;
-  }
+	try {
+		const cliente = await getAsync("SELECT * FROM clientes WHERE id = ?", [
+			clienteId,
+		]);
+		return cliente;
+	} catch (error) {
+		console.error("Erro ao buscar cliente por ID:", error);
+		return null;
+	}
 };
 
 /**
@@ -87,17 +92,17 @@ export const buscarClientePorId = async (clienteId) => {
  * @returns {Promise<Array>} Lista de clientes
  */
 export const listarClientes = async (pagina = 1, porPagina = 20) => {
-  try {
-    const offset = (pagina - 1) * porPagina;
-    const clientes = await allAsync(
-      'SELECT * FROM clientes ORDER BY data_cadastro DESC LIMIT ? OFFSET ?',
-      [porPagina, offset]
-    );
-    return clientes;
-  } catch (error) {
-    console.error('Erro ao listar clientes:', error);
-    return [];
-  }
+	try {
+		const offset = (pagina - 1) * porPagina;
+		const clientes = await allAsync(
+			"SELECT * FROM clientes ORDER BY data_cadastro DESC LIMIT ? OFFSET ?",
+			[porPagina, offset],
+		);
+		return clientes;
+	} catch (error) {
+		console.error("Erro ao listar clientes:", error);
+		return [];
+	}
 };
 
 /**
@@ -106,26 +111,26 @@ export const listarClientes = async (pagina = 1, porPagina = 20) => {
  * @returns {Promise<number>} ID do cliente criado
  */
 export const criarCliente = async (dadosCliente) => {
-  try {
-    const resultado = await runAsync(
-      `INSERT INTO clientes 
+	try {
+		const resultado = await runAsync(
+			`INSERT INTO clientes 
        (uuid, nome, telefone, email, cpf_cnpj, endereco, dados_importantes) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        uuidv4(),
-        dadosCliente.nome,
-        dadosCliente.telefone,
-        dadosCliente.email,
-        dadosCliente.cpf_cnpj || null,
-        dadosCliente.endereco || null,
-        dadosCliente.dados_importantes || null,
-      ]
-    );
-    return resultado.lastID;
-  } catch (error) {
-    console.error('Erro ao criar cliente:', error);
-    return null;
-  }
+			[
+				uuidv4(),
+				dadosCliente.nome,
+				dadosCliente.telefone,
+				dadosCliente.email,
+				dadosCliente.cpf_cnpj || null,
+				dadosCliente.endereco || null,
+				dadosCliente.dados_importantes || null,
+			],
+		);
+		return resultado.lastID;
+	} catch (error) {
+		console.error("Erro ao criar cliente:", error);
+		return null;
+	}
 };
 
 /**
@@ -135,19 +140,22 @@ export const criarCliente = async (dadosCliente) => {
  * @returns {Promise<boolean>} Sucesso da operação
  */
 export const atualizarCliente = async (clienteId, dadosAtualizacao) => {
-  try {
-    // Construir UPDATE dinâmico
-    const campos = Object.keys(dadosAtualizacao);
-    const valores = Object.values(dadosAtualizacao);
-    const setClauses = campos.map((campo) => `${campo} = ?`).join(', ');
+	try {
+		// Construir UPDATE dinâmico
+		const campos = Object.keys(dadosAtualizacao);
+		const valores = Object.values(dadosAtualizacao);
+		const setClauses = campos.map((campo) => `${campo} = ?`).join(", ");
 
-    await runAsync(`UPDATE clientes SET ${setClauses} WHERE id = ?`, [...valores, clienteId]);
+		await runAsync(`UPDATE clientes SET ${setClauses} WHERE id = ?`, [
+			...valores,
+			clienteId,
+		]);
 
-    return true;
-  } catch (error) {
-    console.error('Erro ao atualizar cliente:', error);
-    return false;
-  }
+		return true;
+	} catch (error) {
+		console.error("Erro ao atualizar cliente:", error);
+		return false;
+	}
 };
 
 /**
@@ -161,24 +169,25 @@ export const atualizarCliente = async (clienteId, dadosAtualizacao) => {
  * @returns {Promise<number>} ID da chamada
  */
 export const registrarChamada = async (clienteId, motivoChamada) => {
-  try {
-    const resultado = await runAsync(
-      `INSERT INTO chamadas 
+	try {
+		const resultado = await runAsync(
+			`INSERT INTO chamadas 
        (uuid, cliente_id, motivo_chamada) 
        VALUES (?, ?, ?)`,
-      [uuidv4(), clienteId, motivoChamada]
-    );
+			[uuidv4(), clienteId, motivoChamada],
+		);
 
-    // Atualizar última interação do cliente
-    await runAsync('UPDATE clientes SET ultima_interacao = CURRENT_TIMESTAMP WHERE id = ?', [
-      clienteId,
-    ]);
+		// Atualizar última interação do cliente
+		await runAsync(
+			"UPDATE clientes SET ultima_interacao = CURRENT_TIMESTAMP WHERE id = ?",
+			[clienteId],
+		);
 
-    return resultado.lastID;
-  } catch (error) {
-    console.error('Erro ao registrar chamada:', error);
-    return null;
-  }
+		return resultado.lastID;
+	} catch (error) {
+		console.error("Erro ao registrar chamada:", error);
+		return null;
+	}
 };
 
 /**
@@ -187,13 +196,15 @@ export const registrarChamada = async (clienteId, motivoChamada) => {
  * @returns {Promise<Object>} Dados da chamada
  */
 export const buscarChamada = async (chamadaId) => {
-  try {
-    const chamada = await getAsync('SELECT * FROM chamadas WHERE id = ?', [chamadaId]);
-    return chamada;
-  } catch (error) {
-    console.error('Erro ao buscar chamada:', error);
-    return null;
-  }
+	try {
+		const chamada = await getAsync("SELECT * FROM chamadas WHERE id = ?", [
+			chamadaId,
+		]);
+		return chamada;
+	} catch (error) {
+		console.error("Erro ao buscar chamada:", error);
+		return null;
+	}
 };
 
 /**
@@ -203,15 +214,15 @@ export const buscarChamada = async (chamadaId) => {
  * @returns {Promise<boolean>} Sucesso da operação
  */
 export const finalizarChamada = async (chamadaId, dadosFinal) => {
-  try {
-    // Calcular duração
-    const chamada = await buscarChamada(chamadaId);
-    const dataHoraInicio = new Date(chamada.data_hora);
-    const agora = new Date();
-    const duracao = Math.floor((agora - dataHoraInicio) / 1000);
+	try {
+		// Calcular duração
+		const chamada = await buscarChamada(chamadaId);
+		const dataHoraInicio = new Date(chamada.data_hora);
+		const agora = new Date();
+		const duracao = Math.floor((agora - dataHoraInicio) / 1000);
 
-    await runAsync(
-      `UPDATE chamadas 
+		await runAsync(
+			`UPDATE chamadas 
        SET duracao_segundos = ?,
            resultado = ?,
            foi_resolvido = ?,
@@ -220,23 +231,23 @@ export const finalizarChamada = async (chamadaId, dadosFinal) => {
            avaliacao = ?,
            notas_internas = ?
        WHERE id = ?`,
-      [
-        duracao,
-        dadosFinal.resultado,
-        dadosFinal.foi_resolvido ? 1 : 0,
-        dadosFinal.transcricao || null,
-        dadosFinal.transferido_para_atendente ? 1 : 0,
-        dadosFinal.avaliacao || null,
-        dadosFinal.notas_internas || null,
-        chamadaId,
-      ]
-    );
+			[
+				duracao,
+				dadosFinal.resultado,
+				dadosFinal.foi_resolvido ? 1 : 0,
+				dadosFinal.transcricao || null,
+				dadosFinal.transferido_para_atendente ? 1 : 0,
+				dadosFinal.avaliacao || null,
+				dadosFinal.notas_internas || null,
+				chamadaId,
+			],
+		);
 
-    return true;
-  } catch (error) {
-    console.error('Erro ao finalizar chamada:', error);
-    return false;
-  }
+		return true;
+	} catch (error) {
+		console.error("Erro ao finalizar chamada:", error);
+		return false;
+	}
 };
 
 /**
@@ -246,19 +257,19 @@ export const finalizarChamada = async (chamadaId, dadosFinal) => {
  * @returns {Promise<Array>} Histórico de chamadas
  */
 export const listarChamadasCliente = async (clienteId, limite = 10) => {
-  try {
-    const chamadas = await allAsync(
-      `SELECT * FROM chamadas 
+	try {
+		const chamadas = await allAsync(
+			`SELECT * FROM chamadas 
        WHERE cliente_id = ? 
        ORDER BY data_hora DESC 
        LIMIT ?`,
-      [clienteId, limite]
-    );
-    return chamadas;
-  } catch (error) {
-    console.error('Erro ao listar chamadas:', error);
-    return [];
-  }
+			[clienteId, limite],
+		);
+		return chamadas;
+	} catch (error) {
+		console.error("Erro ao listar chamadas:", error);
+		return [];
+	}
 };
 
 /**
@@ -271,23 +282,23 @@ export const listarChamadasCliente = async (clienteId, limite = 10) => {
  * @returns {Promise<Object>} Dados do atendente
  */
 export const buscarAtendenteLivre = async (especialidade = null) => {
-  try {
-    let sql = 'SELECT * FROM atendentes WHERE status = ?';
-    const params = ['disponivel'];
+	try {
+		let sql = "SELECT * FROM atendentes WHERE status = ?";
+		const params = ["disponivel"];
 
-    if (especialidade) {
-      sql += ' AND especialidade = ?';
-      params.push(especialidade);
-    }
+		if (especialidade) {
+			sql += " AND especialidade = ?";
+			params.push(especialidade);
+		}
 
-    sql += ' ORDER BY chamadas_atendidas ASC LIMIT 1';
+		sql += " ORDER BY chamadas_atendidas ASC LIMIT 1";
 
-    const atendente = await getAsync(sql, params);
-    return atendente;
-  } catch (error) {
-    console.error('Erro ao buscar atendente livre:', error);
-    return null;
-  }
+		const atendente = await getAsync(sql, params);
+		return atendente;
+	} catch (error) {
+		console.error("Erro ao buscar atendente livre:", error);
+		return null;
+	}
 };
 
 /**
@@ -297,13 +308,16 @@ export const buscarAtendenteLivre = async (especialidade = null) => {
  * @returns {Promise<boolean>} Sucesso da operação
  */
 export const atualizarStatusAtendente = async (atendenteId, status) => {
-  try {
-    await runAsync('UPDATE atendentes SET status = ? WHERE id = ?', [status, atendenteId]);
-    return true;
-  } catch (error) {
-    console.error('Erro ao atualizar status atendente:', error);
-    return false;
-  }
+	try {
+		await runAsync("UPDATE atendentes SET status = ? WHERE id = ?", [
+			status,
+			atendenteId,
+		]);
+		return true;
+	} catch (error) {
+		console.error("Erro ao atualizar status atendente:", error);
+		return false;
+	}
 };
 
 /**
@@ -317,34 +331,34 @@ export const atualizarStatusAtendente = async (atendenteId, status) => {
  * @returns {Promise<boolean>} Sucesso da operação
  */
 export const registrarInteracaoIa = async (chamadaId, interacao) => {
-  try {
-    // Contar quantas interações já existe
-    const resultado = await getAsync(
-      'SELECT COUNT(*) as count FROM interacoes_ia WHERE chamada_id = ?',
-      [chamadaId]
-    );
+	try {
+		// Contar quantas interações já existe
+		const resultado = await getAsync(
+			"SELECT COUNT(*) as count FROM interacoes_ia WHERE chamada_id = ?",
+			[chamadaId],
+		);
 
-    const sequencia = (resultado?.count || 0) + 1;
+		const sequencia = (resultado?.count || 0) + 1;
 
-    await runAsync(
-      `INSERT INTO interacoes_ia 
+		await runAsync(
+			`INSERT INTO interacoes_ia 
        (chamada_id, sequencia, tipo, mensagem_usuario, resposta_ia, confianca_resposta) 
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        chamadaId,
-        sequencia,
-        interacao.tipo,
-        interacao.mensagem_usuario,
-        interacao.resposta_ia,
-        interacao.confianca_resposta || 0.8,
-      ]
-    );
+			[
+				chamadaId,
+				sequencia,
+				interacao.tipo,
+				interacao.mensagem_usuario,
+				interacao.resposta_ia,
+				interacao.confianca_resposta || 0.8,
+			],
+		);
 
-    return true;
-  } catch (error) {
-    console.error('Erro ao registrar interação IA:', error);
-    return false;
-  }
+		return true;
+	} catch (error) {
+		console.error("Erro ao registrar interação IA:", error);
+		return false;
+	}
 };
 
 /**
@@ -357,59 +371,65 @@ export const registrarInteracaoIa = async (chamadaId, interacao) => {
  * @returns {Promise<Array>} Lista de problemas
  */
 export const buscarProblemasPorCategoria = async (categoria) => {
-  try {
-    const problemas = await allAsync(
-      'SELECT * FROM problemas_conhecidos WHERE categoria = ? ORDER BY prioridade DESC',
-      [categoria]
-    );
-    return problemas;
-  } catch (error) {
-    console.error('Erro ao buscar problemas:', error);
-    return [];
-  }
+	try {
+		const problemas = await allAsync(
+			"SELECT * FROM problemas_conhecidos WHERE categoria = ? ORDER BY prioridade DESC",
+			[categoria],
+		);
+		return problemas;
+	} catch (error) {
+		console.error("Erro ao buscar problemas:", error);
+		return [];
+	}
 };
 
 /**
  * Listar todos os problemas / base de conhecimento
  */
 export const listarProblemas = async () => {
-  try {
-    return await allAsync(
-      'SELECT * FROM problemas_conhecidos ORDER BY prioridade DESC, data_criacao DESC'
-    );
-  } catch (error) {
-    console.error('Erro ao listar problemas:', error);
-    return [];
-  }
+	try {
+		return await allAsync(
+			"SELECT * FROM problemas_conhecidos ORDER BY prioridade DESC, data_criacao DESC",
+		);
+	} catch (error) {
+		console.error("Erro ao listar problemas:", error);
+		return [];
+	}
 };
 
 /**
  * Adicionar novo problema (Treinar IA)
  */
 export const adicionarProblema = async (dados) => {
-  try {
-    const resultado = await runAsync(
-      `INSERT INTO problemas_conhecidos (categoria, descricao, solucao, palavras_chave, prioridade) VALUES (?, ?, ?, ?, ?)`,
-      [dados.categoria, dados.descricao, dados.solucao, dados.palavras_chave, dados.prioridade || 5]
-    );
-    return resultado.lastID;
-  } catch (error) {
-    console.error('Erro ao adicionar problema conhecidos:', error);
-    return null;
-  }
+	try {
+		const resultado = await runAsync(
+			`INSERT INTO problemas_conhecidos (categoria, descricao, solucao, palavras_chave, prioridade) VALUES (?, ?, ?, ?, ?)`,
+			[
+				dados.categoria,
+				dados.descricao,
+				dados.solucao,
+				dados.palavras_chave,
+				dados.prioridade || 5,
+			],
+		);
+		return resultado.lastID;
+	} catch (error) {
+		console.error("Erro ao adicionar problema conhecidos:", error);
+		return null;
+	}
 };
 
 /**
  * Deletar problema da base de treinamento
  */
 export const deletarProblema = async (id) => {
-  try {
-    await runAsync('DELETE FROM problemas_conhecidos WHERE id = ?', [id]);
-    return true;
-  } catch (error) {
-    console.error('Erro ao deletar problema:', error);
-    return false;
-  }
+	try {
+		await runAsync("DELETE FROM problemas_conhecidos WHERE id = ?", [id]);
+		return true;
+	} catch (error) {
+		console.error("Erro ao deletar problema:", error);
+		return false;
+	}
 };
 
 /**
@@ -418,38 +438,42 @@ export const deletarProblema = async (id) => {
  * @returns {Promise<Object>} Melhor correspondência encontrada
  */
 export const buscarSolucao = async (palavrasChave) => {
-  try {
-    // Converter palavras-chave em padrão de busca
-    const termos = palavrasChave.toLowerCase().split(' ');
+	try {
+		// Converter palavras-chave em padrão de busca
+		const termos = palavrasChave.toLowerCase().split(" ");
 
-    // Buscar problemas que correspondem aos termos
-    const problemas = await allAsync('SELECT * FROM problemas_conhecidos ORDER BY prioridade DESC');
+		// Buscar problemas que correspondem aos termos
+		const problemas = await allAsync(
+			"SELECT * FROM problemas_conhecidos ORDER BY prioridade DESC",
+		);
 
-    // Encontrar melhor correspondência
-    let melhorMatch = null;
-    let melhorScore = 0;
+		// Encontrar melhor correspondência
+		let melhorMatch = null;
+		let melhorScore = 0;
 
-    problemas.forEach((problema) => {
-      const palavrasProblema = problema.palavras_chave.toLowerCase().split(',');
-      let score = 0;
+		problemas.forEach((problema) => {
+			const palavrasProblema = problema.palavras_chave.toLowerCase().split(",");
+			let score = 0;
 
-      termos.forEach((termo) => {
-        if (palavrasProblema.some((palavra) => palavra.includes(termo.trim()))) {
-          score++;
-        }
-      });
+			termos.forEach((termo) => {
+				if (
+					palavrasProblema.some((palavra) => palavra.includes(termo.trim()))
+				) {
+					score++;
+				}
+			});
 
-      if (score > melhorScore) {
-        melhorScore = score;
-        melhorMatch = problema;
-      }
-    });
+			if (score > melhorScore) {
+				melhorScore = score;
+				melhorMatch = problema;
+			}
+		});
 
-    return melhorMatch;
-  } catch (error) {
-    console.error('Erro ao buscar solução:', error);
-    return null;
-  }
+		return melhorMatch;
+	} catch (error) {
+		console.error("Erro ao buscar solução:", error);
+		return null;
+	}
 };
 
 /**
@@ -461,47 +485,54 @@ export const buscarSolucao = async (palavrasChave) => {
  * @returns {Promise<Object>} Estatísticas gerais
  */
 export const obterEstatisticas = async () => {
-  try {
-    const totalClientes = await getAsync('SELECT COUNT(*) as count FROM clientes');
-    const totalChamadas = await getAsync('SELECT COUNT(*) as count FROM chamadas');
-    const chamadasResolvidas = await getAsync(
-      'SELECT COUNT(*) as count FROM chamadas WHERE foi_resolvido = 1'
-    );
-    const chamadasTransferidas = await getAsync(
-      'SELECT COUNT(*) as count FROM chamadas WHERE transferido_para_atendente = 1'
-    );
+	try {
+		const totalClientes = await getAsync(
+			"SELECT COUNT(*) as count FROM clientes",
+		);
+		const totalChamadas = await getAsync(
+			"SELECT COUNT(*) as count FROM chamadas",
+		);
+		const chamadasResolvidas = await getAsync(
+			"SELECT COUNT(*) as count FROM chamadas WHERE foi_resolvido = 1",
+		);
+		const chamadasTransferidas = await getAsync(
+			"SELECT COUNT(*) as count FROM chamadas WHERE transferido_para_atendente = 1",
+		);
 
-    return {
-      total_clientes: totalClientes?.count || 0,
-      total_chamadas: totalChamadas?.count || 0,
-      chamadas_resolvidas: chamadasResolvidas?.count || 0,
-      chamadas_transferidas: chamadasTransferidas?.count || 0,
-      taxa_resolucao:
-        (((chamadasResolvidas?.count || 0) / (totalChamadas?.count || 1)) * 100).toFixed(2) + '%',
-    };
-  } catch (error) {
-    console.error('Erro ao obter estatísticas:', error);
-    return {};
-  }
+		return {
+			total_clientes: totalClientes?.count || 0,
+			total_chamadas: totalChamadas?.count || 0,
+			chamadas_resolvidas: chamadasResolvidas?.count || 0,
+			chamadas_transferidas: chamadasTransferidas?.count || 0,
+			taxa_resolucao:
+				(
+					((chamadasResolvidas?.count || 0) / (totalChamadas?.count || 1)) *
+					100
+				).toFixed(2) + "%",
+		};
+	} catch (error) {
+		console.error("Erro ao obter estatísticas:", error);
+		return {};
+	}
 };
 
 export default {
-  buscarClientePorTelefone,
-  buscarClientePorId,
-  listarClientes,
-  criarCliente,
-  atualizarCliente,
-  registrarChamada,
-  buscarChamada,
-  finalizarChamada,
-  listarChamadasCliente,
-  buscarAtendenteLivre,
-  atualizarStatusAtendente,
-  registrarInteracaoIa,
-  buscarProblemasPorCategoria,
-  listarProblemas,
-  adicionarProblema,
-  deletarProblema,
-  buscarSolucao,
-  obterEstatisticas,
+	buscarClientePorTelefone,
+	buscarClientePorId,
+	listarClientes,
+	criarCliente,
+	atualizarCliente,
+	registrarChamada,
+	buscarChamada,
+	finalizarChamada,
+	listarChamadasCliente,
+	buscarAtendenteLivre,
+	atualizarStatusAtendente,
+	registrarInteracaoIa,
+	buscarProblemasPorCategoria,
+	listarProblemas,
+	adicionarProblema,
+	deletarProblema,
+	buscarSolucao,
+	obterEstatisticas,
 };

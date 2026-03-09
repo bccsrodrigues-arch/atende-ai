@@ -21,6 +21,6 @@ O **Atende AI** utiliza as seguintes tecnologias em seu sistema de atendimento c
 ## Ambiente de Desenvolvimento
 
 - **Manejo de Pacotes**: NPM
-- **Linter & Formatter**: ESLint (configuração standalone flat config) e Prettier
+- **Linter & Formatter**: Biome (solução tudo-em-um supersônica)
 - **Agente IAM/CLI**: Jules CLI (`@google/jules`) para remote reviews, qualidade, e CI/CD.
 - **Git Hooks**: Husky para verificação pré-commit

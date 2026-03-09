@@ -399,4 +399,4 @@ services:
 git push heroku main
 */
 
-console.log('✅ Exemplos de uso carregados');
+console.log("✅ Exemplos de uso carregados");

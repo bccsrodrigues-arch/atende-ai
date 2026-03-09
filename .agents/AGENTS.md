@@ -47,9 +47,7 @@
 - **Jules CLI** (`@google/jules`) deve ser utilizado SEMPRE que possível para tarefas remotas avançadas, automações, pull requests, refatorações pesadas, CI/CD, e verificação/qualidade geral do código do repositório
 - Manter pipeline de CI/CD configurada
 - Pre-commit hooks com linters, formatters e validadores de tipo
-- Testes automatizados (Jest)
-- Lint com ESLint
-- Format com Prettier
+- Lint e Format combinados via Biome
 
 ### Documentação
 
