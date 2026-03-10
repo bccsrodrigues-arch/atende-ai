@@ -521,6 +521,11 @@ app.get("/api/voz/voices", async (_req, res) => {
 			headers: { "xi-api-key": apiKey },
 		});
 		const data = await response.json();
+		
+		if (!response.ok) {
+		    return res.status(response.status).json({ sucesso: false, erro: data.detail?.message || "Erro na ElevenLabs" });
+		}
+		
 		const voices = (data.voices || []).map((v) => ({
 			id: v.voice_id,
 			nome: v.name,

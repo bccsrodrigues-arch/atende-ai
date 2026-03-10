@@ -517,7 +517,7 @@
 
   <script>
     // Authentication functions
-    function _openModal(tab = 'login') {
+    function openModal(tab = 'login') {
       document.getElementById('authModal').style.display = 'block';
       switchTab(tab);
     }
@@ -614,7 +614,7 @@
       }
     }
 
-    function _logout() {
+    function logout() {
       if (confirm('Deseja sair do sistema?')) {
         localStorage.removeItem('atendeAI_currentUser');
         window.location.href = '/';

@@ -24,14 +24,14 @@
     }
   });
 
-  function _logout() {
+  function logout() {
     if (confirm('Deseja sair do sistema?')) {
       localStorage.removeItem('atendeAI_currentUser');
       window.location.href = '/';
     }
   }
 
-  function _showSection(section) {
+  function showSection(section) {
     // Hide dashboard grid
     const grid = document.querySelector('.dashboard-grid');
     if (grid) grid.style.display = 'none';
@@ -59,7 +59,7 @@
     }
   }
 
-  function _showDashboard() {
+  function showDashboard() {
     // Hide all tab-content
     const allTabs = document.querySelectorAll('.tab-content');
     allTabs.forEach(tab => tab.classList.remove('active'));
@@ -198,15 +198,11 @@
               <span id="velocidade-valor">1.0x</span>
             </div>
             <div class="form-group">
-              <label>Tom da Voz (Gênero ou ID ElevenLabs)</label>
-              <input type="text" id="tom-voz-audio" list="opcoes-vozes" placeholder="female, male ou ID da ElevenLabs..." onchange="syncVoz(this.value)">
-              <datalist id="opcoes-vozes">
-                <option value="female">Feminino (Padrão)</option>
+              <label>Tom da Voz</label>
+              <select id="tom-voz-audio" class="form-control">
+                <option value="female" selected>Feminino (Padrão)</option>
                 <option value="male">Masculino</option>
-                <option value="EXAVITQu4vr4xnSDxMaL">Rachel (Alice)</option>
-                <option value="pNInz6obpgDQGcFmaJgB">Adam</option>
-                <option value="RGymW84CSmfVugnA5tvA">Voz Personalizada 1</option>
-              </datalist>
+              </select>
             </div>
             <div class="form-group">
               <label>Testar Voz</label>
@@ -622,12 +618,11 @@
           <textarea id="agente-instrucao" rows="3" placeholder="Ex: Seja um especialista técnico focado em clareza..."></textarea>
         </div>
         <div class="form-group">
-          <label>Voz (Gênero ou ID ElevenLabs)</label>
-          <input type="text" id="agente-voz" list="opcoes-vozes-agente" placeholder="female, male ou ID...">
-          <datalist id="opcoes-vozes-agente">
-            <option value="female">Feminino</option>
+          <label>Voz</label>
+          <select id="agente-voz" class="form-control">
+            <option value="female" selected>Feminino</option>
             <option value="male">Masculino</option>
-          </datalist>
+          </select>
         </div>
         <div class="form-group">
           <label>Velocidade (0.5 a 2.0)</label>

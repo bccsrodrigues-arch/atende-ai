@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /**
  * Configurar event listeners (Legado - removido para evitar conflitos)
  */
-function _configurarEventListeners_legacy() {
+function configurarEventListeners_legacy() {
 	// Removido
 }
 
@@ -137,7 +137,7 @@ function _configurarEventListeners_legacy() {
  * Trocar entre abas
  * @param {string} nomeAba - Nome da aba (clientes, chamadas, teste-ia)
  */
-function _switchTab(nomeAba) {
+function switchTab(nomeAba) {
 	// Esconder todas as abas
 	document.querySelectorAll(".tab-content").forEach((tab) => {
 		tab.classList.remove("active");
@@ -331,7 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
  * Deletar cliente
  * @param {number} clienteId - ID do cliente
  */
-async function _deletarCliente(clienteId) {
+async function deletarCliente(clienteId) {
 	if (
 		!confirm(
 			"Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.",
@@ -363,7 +363,7 @@ async function _deletarCliente(clienteId) {
  * Ver detalhes do cliente
  * @param {number} clienteId - ID do cliente
  */
-async function _verDetalhesCliente(clienteId) {
+async function verDetalhesCliente(clienteId) {
 	try {
 		const resposta = await fetch(`${API_BASE}/clientes/${clienteId}`);
 		const dados = await resposta.json();
@@ -417,7 +417,7 @@ async function _verDetalhesCliente(clienteId) {
  * Editar cliente (abrir formulário com dados)
  * @param {number} clienteId - ID do cliente
  */
-function _editarCliente(clienteId) {
+function editarCliente(clienteId) {
 	const cliente = estadoGlobal.clientesCarregados.find(
 		(c) => c.id === clienteId,
 	);
@@ -486,7 +486,7 @@ async function carregarClientesTeste() {
 /**
  * Testar processamento da IA
  */
-async function _testarIA() {
+async function testarIA() {
 	// Detectar contexto (se é a aba 'IA' ou 'Teste')
 	const isTabIA = document
 		.getElementById("tab-teste-ia")
@@ -623,7 +623,7 @@ function abrirModal(conteudo) {
 /**
  * Fechar modal
  */
-function _closeModal() {
+function closeModal() {
 	document.getElementById("modal-detalhes").style.display = "none";
 }
 
@@ -674,7 +674,7 @@ function mostrarErro(mensagem) {
 /**
  * Fazer logout
  */
-async function _logout() {
+async function logout() {
 	if (await customConfirm("Tem certeza que deseja sair?")) {
 		// Encerrar sessão (simulado)
 		localStorage.clear();
@@ -907,7 +907,7 @@ function testarVoz() {
 /**
  * Ouvir última resposta por voz
  */
-function _ouvirUltimaResposta() {
+function ouvirUltimaResposta() {
 	if (estadoGlobal.ultimaResposta) {
 		falarTexto(estadoGlobal.ultimaResposta);
 	} else {
@@ -1046,7 +1046,7 @@ function mostrarNotificacao_legacy(mensagem, tipo = "info") {
 /**
  * Carregar exemplo de mensagem
  */
-function _carregarExemplo() {
+function carregarExemplo() {
 	const isTabIA = document
 		.getElementById("tab-teste-ia")
 		.classList.contains("active");
@@ -1065,7 +1065,7 @@ function _carregarExemplo() {
 /**
  * Iniciar gravação de voz
  */
-function _iniciarGravacao() {
+function iniciarGravacao() {
 	const isTabIA = document
 		.getElementById("tab-teste-ia")
 		.classList.contains("active");
@@ -1620,7 +1620,7 @@ function limparFiltros() {
 /**
  * Ver detalhes do atendimento
  */
-function _verDetalhesAtendimento(protocolo) {
+function verDetalhesAtendimento(protocolo) {
 	const atendimento = estadoGlobal.historicoAtendimentos.find(
 		(a) => a.protocolo === protocolo,
 	);
@@ -1779,35 +1779,82 @@ function pararFala() {
 /**
  * Carregar vozes disponíveis
  */
-function carregarVozesDisponiveis() {
-	if (!("speechSynthesis" in window)) return;
+async function carregarVozesDisponiveis() {
+	try {
+		const res = await fetch(`${API_BASE}/voz/voices`);
+		const data = await res.json();
 
-	const selectVoz = document.getElementById("voz-selecionada");
-	const configVoz = JSON.parse(localStorage.getItem("config_voz") || "{}");
+		const listPrincipal = document.getElementById("tom-voz-audio");
+		const listAgente = document.getElementById("agente-voz");
 
-	// Função para popular select
-	const popularVozes = () => {
-		const vozes = speechSynthesis.getVoices();
-		selectVoz.innerHTML = '<option value="">Voz padrão do sistema</option>';
+		const defaultOptions = `
+          <option value="female">Feminino (Padrão)</option>
+          <option value="male">Masculino</option>
+        `;
 
-		vozes.forEach((voz) => {
-			const option = document.createElement("option");
-			option.value = voz.name;
-			option.textContent = `${voz.name} (${voz.lang})`;
-			if (voz.name === configVoz.voz_selecionada) {
-				option.selected = true;
+		if (data.sucesso && data.voices && data.voices.length > 0) {
+			if (listPrincipal || listAgente) {
+			    const valPrincipal = listPrincipal ? listPrincipal.value : null;
+			    const valAgente = listAgente ? listAgente.value : null;
+
+				const optionsHtml = data.voices
+					.map(
+						(v) => `<option value="${v.id}">${v.nome} (${v.categoria})</option>`,
+					)
+					.join("");
+
+				if (listPrincipal) {
+				    listPrincipal.innerHTML = defaultOptions + optionsHtml;
+				    if (valPrincipal) {
+				        if (!listPrincipal.querySelector(`option[value="${valPrincipal}"]`)) {
+				            listPrincipal.insertAdjacentHTML("beforeend", `<option value="${valPrincipal}">${valPrincipal} (Salvo)</option>`);
+				        }
+				        listPrincipal.value = valPrincipal;
+				    }
+				}
+				if (listAgente) {
+				    listAgente.innerHTML = defaultOptions + optionsHtml;
+				    if (valAgente) {
+				        if (!listAgente.querySelector(`option[value="${valAgente}"]`)) {
+				            listAgente.insertAdjacentHTML("beforeend", `<option value="${valAgente}">${valAgente} (Salvo)</option>`);
+				        }
+				        listAgente.value = valAgente;
+				    }
+				}
+
+				console.log("✅ Vozes da ElevenLabs carregadas");
 			}
-			selectVoz.appendChild(option);
-		});
-	};
+		} else {
+		    const valPrincipal = listPrincipal ? listPrincipal.value : null;
+		    const valAgente = listAgente ? listAgente.value : null;
 
-	// Carregar vozes imediatamente se disponíveis
-	if (speechSynthesis.getVoices().length > 0) {
-		popularVozes();
+		    if (listPrincipal) {
+		        listPrincipal.innerHTML = defaultOptions;
+		        if (valPrincipal) {
+		            if (!listPrincipal.querySelector(`option[value="${valPrincipal}"]`)) {
+		                listPrincipal.insertAdjacentHTML("beforeend", `<option value="${valPrincipal}">${valPrincipal} (Personalizado)</option>`);
+		            }
+		            listPrincipal.value = valPrincipal;
+		        }
+		    }
+		    if (listAgente) {
+		        listAgente.innerHTML = defaultOptions;
+		        if (valAgente) {
+		            if (!listAgente.querySelector(`option[value="${valAgente}"]`)) {
+		                listAgente.insertAdjacentHTML("beforeend", `<option value="${valAgente}">${valAgente} (Personalizado)</option>`);
+		            }
+		            listAgente.value = valAgente;
+		        }
+		    }
+		    
+		    if (data.erro) {
+		        console.error("❌ Erro ao carregar vozes ElevenLabs:", data.erro);
+		        mostrarNotificacao(`Aviso: ${data.erro}`, "error");
+		    }
+		}
+	} catch (err) {
+		console.error("❌ Erro de conexão ao carregar vozes:", err);
 	}
-
-	// Recarregar quando vozes estiverem prontas
-	speechSynthesis.onvoiceschanged = popularVozes;
 }
 
 // ==========================================
@@ -1835,14 +1882,14 @@ function mostrarNotificacao(mensagem, tipo = "info") {
 /**
  * Formatar data para exibição
  */
-function _formatarData(data) {
+function formatarData(data) {
 	return new Date(data).toLocaleString("pt-BR");
 }
 
 /**
  * Copiar texto para clipboard
  */
-function _copiarParaClipboard(texto) {
+function copiarParaClipboard(texto) {
 	navigator.clipboard
 		.writeText(texto)
 		.then(() => {
@@ -1954,7 +2001,7 @@ function importarConfiguracoes(event) {
 // TREINAMENTO E BASE DE CONHECIMENTO
 // ==========================================
 
-function _openFormAdicionarTreinamento() {
+function openFormAdicionarTreinamento() {
 	document.getElementById("form-treinamento").style.display = "block";
 }
 
@@ -2002,7 +2049,7 @@ async function carregarTreinamentos() {
 /**
  * RAG / CONHECIMENTO TÉCNICO
  */
-async function _deletarTreinamento(id, event) {
+async function deletarTreinamento(id, event) {
 	if (event) {
 		event.preventDefault();
 		event.stopPropagation();
@@ -2024,7 +2071,7 @@ async function _deletarTreinamento(id, event) {
 	}
 }
 
-async function _deletarBase(id) {
+async function deletarBase(id) {
 	if (!(await customConfirm("Excluir este conhecimento?"))) return;
 	try {
 		await fetch(`${API_BASE}/treinamento/problemas/${id}`, {
@@ -2038,7 +2085,7 @@ async function _deletarBase(id) {
 	}
 }
 
-async function _editarProblemaIA(id, event) {
+async function editarProblemaIA(id, event) {
 	if (event) {
 		event.preventDefault();
 		event.stopPropagation();
@@ -2077,7 +2124,7 @@ async function _editarProblemaIA(id, event) {
  * SISTEMA DE TREINAMENTO COMPORTAMENTAL E FEEDBACK
  */
 
-function _switchTrainingSubTab(tab) {
+function switchTrainingSubTab(tab) {
 	document
 		.querySelectorAll(".training-sub-content")
 		.forEach((el) => (el.style.display = "none"));
@@ -2091,7 +2138,7 @@ function _switchTrainingSubTab(tab) {
 	if (tab === "aprendizado") carregarLicoesAprendidas();
 }
 
-async function _salvarRegraComportamento() {
+async function salvarRegraComportamento() {
 	const nome = document.getElementById("regra-nome").value;
 	const instrucao = document.getElementById("regra-instrucao").value;
 
@@ -2173,7 +2220,7 @@ async function carregarLicoesAprendidas() {
 	}
 }
 
-async function _excluirAprendizado(id) {
+async function excluirAprendizado(id) {
 	if (!(await customConfirm("Esquecer esta lição aprendida?"))) return;
 	try {
 		const res = await fetch(`${API_BASE}/admin/aprendizados/${id}`, {
@@ -2189,7 +2236,7 @@ async function _excluirAprendizado(id) {
 	}
 }
 
-async function _registrarFeedbackIA(id, tipo) {
+async function registrarFeedbackIA(id, tipo) {
 	let justificativa = "";
 	if (tipo === "negativo") {
 		justificativa = await customPrompt(
@@ -2308,7 +2355,7 @@ async function carregarAgentes() {
 	}
 }
 
-async function _abrirConfigAgente(id) {
+async function abrirConfigAgente(id) {
 	// 1. Selecionar o agente no playground
 	const seletor = document.getElementById("agente-seletor-playground");
 	if (seletor) {
@@ -2387,7 +2434,7 @@ async function carregarSeletorAgentes() {
 	} catch (_err) {}
 }
 
-function _selecionarAgenteAtendimento() {
+function selecionarAgenteAtendimento() {
 	const id = document.getElementById("agente-seletor-atendimento").value;
 	const btnIniciar = document.getElementById("btn-iniciar-atendimento");
 
@@ -2399,7 +2446,7 @@ function _selecionarAgenteAtendimento() {
 	}
 }
 
-function _abrirNovoAgente() {
+function abrirNovoAgente() {
 	document.getElementById("modal-agente").style.display = "block";
 	document.getElementById("modal-agente-titulo").textContent = "👤 Novo Agente";
 	document.getElementById("agente-id-edit").value = "";
@@ -2415,7 +2462,7 @@ function fecharModalAgente() {
 /**
  * Selecionar e abrir configurações do agente
  */
-async function _selecionarAgente(id) {
+async function selecionarAgente(id) {
 	try {
 		console.log(`[UI] Selecionando Agente ID: ${id}`);
 		const res = await fetch(`${API_BASE}/admin/agentes/${id}`);
@@ -2477,7 +2524,7 @@ async function _selecionarAgente(id) {
 	}
 }
 
-function _editarAgenteSelecionado() {
+function editarAgenteSelecionado() {
 	const id = document.getElementById("agente-seletor-playground")?.value;
 	if (!id) {
 		mostrarNotificacao("Nenhum agente selecionado.", "error");
@@ -2521,7 +2568,7 @@ async function editarAgente(id) {
 	} catch (_err) {}
 }
 
-async function _salvarAgente() {
+async function salvarAgente() {
 	const id = document.getElementById("agente-id-edit").value;
 	const payload = {
 		nome: document.getElementById("agente-nome").value,
@@ -2578,7 +2625,7 @@ async function _salvarAgente() {
 	}
 }
 
-async function _deletarAgente(id) {
+async function deletarAgente(id) {
 	if (id === 1) return alert("Não é possível excluir o agente padrão.");
 	if (!(await customConfirm("Excluir este perfil de agente permanentemente?")))
 		return;
@@ -2854,7 +2901,7 @@ async function carregarRegrasBrain() {
 	}
 }
 
-async function _deletarRegraIA(id, event) {
+async function deletarRegraIA(id, event) {
 	if (event) {
 		event.preventDefault();
 		event.stopPropagation();
@@ -2876,7 +2923,7 @@ async function _deletarRegraIA(id, event) {
 	}
 }
 
-async function _editarRegraIA(id, instrucao, event) {
+async function editarRegraIA(id, instrucao, event) {
 	if (event) {
 		event.preventDefault();
 		event.stopPropagation();
@@ -2900,7 +2947,7 @@ async function _editarRegraIA(id, instrucao, event) {
 		});
 }
 
-async function _adicionarRegraConfig() {
+async function adicionarRegraConfig() {
 	const textarea = document.getElementById("nova-regra-config");
 	const instrucao = textarea.value.trim();
 	const agenteId =
@@ -2942,7 +2989,7 @@ async function atualizarStatsSidebar() {
 	} catch (_err) {}
 }
 
-function _limparChat() {
+function limparChat() {
 	document.getElementById("chat-container").innerHTML = `
 		<div class="msg-bubble system">
 			<div class="avatar">🤖</div>
@@ -2952,7 +2999,7 @@ function _limparChat() {
 	chatHistory = [];
 }
 
-async function _iniciarGravacaoChat() {
+async function iniciarGravacaoChat() {
 	if (!("webkitSpeechRecognition" in window)) {
 		alert("Seu navegador não suporta reconhecimento de voz.");
 		return;
@@ -2997,7 +3044,7 @@ async function _iniciarGravacaoChat() {
 /**
  * NAVEGAÇÃO SIDEBAR COMMAND CENTER
  */
-function _switchSidebarTab(tab) {
+function switchSidebarTab(tab) {
 	// Esconder todos os painéis
 	document
 		.querySelectorAll(".sidebar-pane")
@@ -3060,7 +3107,7 @@ async function gerarSugestoesIA() {
 	}
 }
 
-function _recusarSugestaoIA(btn) {
+function recusarSugestaoIA(btn) {
 	const card = btn.closest(".rule-pill");
 	if (card) {
 		card.style.transition = "all 0.3s ease";
@@ -3078,7 +3125,7 @@ function _recusarSugestaoIA(btn) {
 	}
 }
 
-async function _aceitarSugestaoIA(tipo, titulo, descricao, solucao) {
+async function aceitarSugestaoIA(tipo, titulo, descricao, solucao) {
 	const agenteId = document.getElementById("agente-seletor-playground").value;
 	const endpoint =
 		tipo === "regra"
@@ -3119,7 +3166,7 @@ async function _aceitarSugestaoIA(tipo, titulo, descricao, solucao) {
 	}
 }
 
-async function _salvarRegraComportamentoRapido() {
+async function salvarRegraComportamentoRapido() {
 	const instrucao = document.getElementById("regra-instrucao-side").value;
 	const agenteId =
 		document.getElementById("agente-seletor-playground")?.value || 1;
@@ -3142,7 +3189,7 @@ async function _salvarRegraComportamentoRapido() {
 	}
 }
 
-async function _salvarTreinamentoRapido() {
+async function salvarTreinamentoRapido() {
 	const descricao = document.getElementById("treino-pergunta-side").value;
 	const solucao = document.getElementById("treino-resposta-side").value;
 	if (!descricao || !solucao) return;
@@ -3210,7 +3257,7 @@ async function carregarConhecimentoMini() {
 	} catch (_err) {}
 }
 
-async function _deletarProblemaIA(id, event) {
+async function deletarProblemaIA(id, event) {
 	if (event) {
 		event.preventDefault();
 		event.stopPropagation();
