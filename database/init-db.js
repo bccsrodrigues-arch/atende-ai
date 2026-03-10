@@ -11,9 +11,9 @@
  * Execute: node database/init-db.js
  */
 
-import path from "path";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import sqlite3 from "sqlite3";
-import { fileURLToPath } from "url";
 
 // Obter o caminho do diretório atual
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -175,6 +175,60 @@ const createProblemasTable = () => {
 };
 
 /**
+ * TABELA 6: AGENTES DE IA
+ * Perfis customizados de agentes
+ */
+const createAgentesTable = () => {
+	const sql = `
+    CREATE TABLE IF NOT EXISTS agentes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uuid TEXT UNIQUE NOT NULL,
+      nome TEXT NOT NULL,
+      voz_id TEXT DEFAULT 'female',
+      tom_voz TEXT DEFAULT 'profissional',
+      velocidade DECIMAL(2,1) DEFAULT 1.0,
+      instrucao_comportamental TEXT,
+      script_saudacao TEXT,
+      script_pulpito TEXT,
+      script_encerramento TEXT,
+      script_transferencia TEXT,
+      finalizado BOOLEAN DEFAULT FALSE,
+      ativo BOOLEAN DEFAULT TRUE,
+      data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+      data_atualizacao DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+	db.run(sql, (err) => {
+		if (err) console.error("❌ Erro ao criar tabela agentes:", err);
+		else console.log('✅ Tabela "agentes" criada/verificada');
+	});
+};
+
+/**
+ * TABELA 7: REGRAS DA IA
+ * Instruções específicas de comportamento para os agentes
+ */
+const createRegrasTable = () => {
+	const sql = `
+    CREATE TABLE IF NOT EXISTS regras_ia (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      agente_id INTEGER DEFAULT 1,
+      nome TEXT,
+      instrucao TEXT NOT NULL,
+      ativo BOOLEAN DEFAULT TRUE,
+      data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (agente_id) REFERENCES agentes(id)
+    )
+  `;
+
+	db.run(sql, (err) => {
+		if (err) console.error("❌ Erro ao criar tabela regras_ia:", err);
+		else console.log('✅ Tabela "regras_ia" criada/verificada');
+	});
+};
+
+/**
  * CRIAR ÍNDICES para melhor desempenho
  * Índices são usados em buscas frequentes
  */
@@ -186,6 +240,7 @@ const createIndices = () => {
 		"CREATE INDEX IF NOT EXISTS idx_chamadas_data ON chamadas(data_hora)",
 		"CREATE INDEX IF NOT EXISTS idx_interacoes_chamada ON interacoes_ia(chamada_id)",
 		"CREATE INDEX IF NOT EXISTS idx_atendentes_status ON atendentes(status)",
+		"CREATE INDEX IF NOT EXISTS idx_regras_agente ON regras_ia(agente_id)",
 	];
 
 	indices.forEach((indexSql) => {
@@ -318,6 +373,22 @@ const insertSampleData = () => {
 		]);
 	});
 
+	// Inserir Chamada de Teste (ID 1) para Playground
+	const sqlTeste = `
+	  INSERT OR IGNORE INTO chamadas 
+	  (id, uuid, cliente_id, motivo_chamada, resultado) 
+	  VALUES (1, '00000000-0000-0000-0000-000000000001', 1, 'Teste IA Playground', 'Pendente')
+	`;
+	db.run(sqlTeste);
+
+	// Inserir Agente Maria Padrão
+	const sqlAgente = `
+	  INSERT OR IGNORE INTO agentes 
+	  (id, uuid, nome, voz_id, tom_voz, velocidade, instrucao_comportamental, script_saudacao, ativo) 
+	  VALUES (1, '00000000-0000-0000-0000-000000000002', 'Maria', 'female', 'profissional', 1.0, 'Seja uma assistente cordial e prestativa.', 'Olá, eu sou a Maria. Como posso ajudar?', 1)
+	`;
+	db.run(sqlAgente);
+
 	console.log("✅ Dados de exemplo inseridos");
 };
 
@@ -332,6 +403,8 @@ const initDatabase = () => {
 	createAtendentesTable();
 	createInteracoesTable();
 	createProblemasTable();
+	createAgentesTable();
+	createRegrasTable();
 	createIndices();
 
 	// Aguardar um pouco antes de inserir dados de exemplo
@@ -340,7 +413,7 @@ const initDatabase = () => {
 
 		setTimeout(() => {
 			console.log("\n✅ Banco de dados inicializado com sucesso!");
-			console.log("📁 Arquivo: " + dbPath);
+			console.log(`📁 Arquivo: ${dbPath}`);
 			db.close();
 			process.exit(0);
 		}, 500);

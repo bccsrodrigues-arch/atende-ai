@@ -1,351 +1,336 @@
 /**
  * ==============================================================
- * SERVIÇO DE IA - INTEGRAÇÃO COM HUGGING FACE (ALTERNATIVA GRATUITA)
+ * SERVIÇO DE IA - INTEGRAÇÃO COM GOOGLE GEMINI
  * ==============================================================
- * Gerencia todas as interações com a API Hugging Face (gratuita)
+ * Gerencia todas as interações com a API Google Gemini
  * - Processa linguagem natural
  * - Gera respostas contextualizadas
  * - Detecta intenção do cliente
  * - Avalia confiança das respostas
  */
-
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import dotenv from "dotenv";
 import db from "./database.js";
 
-// Configuração Hugging Face
-const HUGGINGFACE_MODEL = "gpt2"; // Modelo gratuito para geração de texto
-const HUGGINGFACE_API_URL = `https://api-inference.huggingface.co/models/${HUGGINGFACE_MODEL}`;
+dotenv.config();
+
+// Inicializar cliente Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 /**
  * CONFIGURAÇÕES DO AGENTE DE IA
  */
 const CONFIG_AGENTE = {
-	modelo: HUGGINGFACE_MODEL,
-	temperatura: 0.7, // Balanceado entre criatividade e consistência
-	maxTokens: 1000,
-	sistemPrompt: `Você é um agente de atendimento ao cliente humanizado e profissional para uma empresa.
-  
-Suas responsabilidades:
-1. ENTENDER o cliente e seu problema
-2. BUSCAR SOLUÇÕES no banco de dados de problemas conhecidos
-3. RESOLVER quando possível de forma clara e amigável
-4. TRANSFERIR para atendente humano quando:
-   - Não conseguir resolver o problema
-   - O cliente solicitar
-   - O problema for muito complexo ou delicado
-   - Detectar frustração excessiva do cliente
+	modelo: "gemini-2.5-flash",
+	temperatura: 0.85, // Mais criativo e natural
+	sistemPrompt: `Você é um atendente HUMANO real de uma empresa. Ninguém deve perceber que você é uma IA.
 
-Sempre mantenha um tom:
-- Amigável e empático
-- Profissional
-- Claro e objetivo
-- Humanizado (não soar robótico)
+REGRAS DE NATURALIDADE (OBRIGATÓRIO):
+- Fale como um brasileiro de verdade: use "tá", "né", "beleza", "show", "pode deixar", "ah sim", "olha só"
+- Use frases CURTAS e diretas. Nada de parágrafos enormes
+- Varie suas respostas: NUNCA repita a mesma frase/estrutura duas vezes seguidas
+- Demonstre emoção real: se o cliente está frustrado, diga "putz, entendo sua frustração" 
+- Use pausas naturais com "..." quando estiver "pensando"
+- Não use bullet points ou listas numeradas em respostas normais. Fale como se fosse uma conversa de WhatsApp
+- NUNCA diga "Estou aqui para ajudá-lo" ou frases genéricas de robô
+- Pode usar 1-2 emojis no máximo, e apenas quando fizer sentido
+- Se não souber algo, diga "Hmm, deixa eu verificar aqui..." em vez de "Não possuo essa informação"
 
-Se não souber a resposta, admita e ofereça transferência para um atendente.`,
+SUAS RESPONSABILIDADES:
+1. ENTENDER o cliente e seu problema com empatia genuína
+2. BUSCAR SOLUÇÕES no conhecimento técnico fornecido no contexto
+3. RESOLVER de forma clara, simples e amigável
+4. TRANSFERIR para atendente humano quando necessário, sem fazer o cliente repetir tudo`,
 };
 
 /**
- * Analisar intenção do usuário
- * @param {string} mensagem - Mensagem do usuário
- * @param {Object} contextoCliente - Dados do cliente
- * @returns {Promise<Object>} Análise de intenção
+ * Analisar intenção do usuário usando Gemini
  */
-export const analisarIntencao = async (mensagem, _contextoCliente = {}) => {
+export const analisarIntencao = async (mensagem) => {
 	try {
-		// Análise simples baseada em palavras-chave (gratuita)
-		const lower = mensagem.toLowerCase();
-		let categoria = "outro";
-		let urgencia = 5;
-
-		if (
-			lower.includes("pagamento") ||
-			lower.includes("pagar") ||
-			lower.includes("boleto")
-		) {
-			categoria = "pagamento";
-			urgencia = 7;
-		} else if (
-			lower.includes("erro") ||
-			lower.includes("não funciona") ||
-			lower.includes("problema técnico")
-		) {
-			categoria = "tecnico";
-			urgencia = 8;
-		} else if (
-			lower.includes("ajuda") ||
-			lower.includes("suporte") ||
-			lower.includes("atendimento")
-		) {
-			categoria = "suporte";
-			urgencia = 4;
-		} else if (lower.includes("cancelar") || lower.includes("cancelamento")) {
-			categoria = "cancelamento";
-			urgencia = 9;
-		} else if (
-			lower.includes("reclama") ||
-			lower.includes("queixa") ||
-			lower.includes("insatisfeito")
-		) {
-			categoria = "reclamacao";
-			urgencia = 6;
+		const apiKey = process.env.GEMINI_API_KEY || "";
+		if (apiKey.includes("SUA_CHAVE") || apiKey.length < 10) {
+			return { categoria: "suporte", urgencia: 5 };
 		}
 
-		// Extrair palavras-chave simples
-		const palavras = mensagem.split(" ").filter((word) => word.length > 3);
+		const model = genAI.getGenerativeModel({ model: CONFIG_AGENTE.modelo });
+
+		const prompt = `Analise a intenção da seguinte mensagem de cliente: "${mensagem}"
+Retorne APENAS um JSON plano com estas chaves:
+{
+  "categoria": "vendas|suporte|financeiro|reclamacao|cancelamento|saudacao|duvida",
+  "urgencia": 1 a 10
+}`;
+
+		const result = await model.generateContent({
+			contents: [{ role: "user", parts: [{ text: prompt }] }],
+			generationConfig: { responseMimeType: "application/json" },
+		});
+
+		const response = result.response;
+		const json = JSON.parse(response.text());
 
 		return {
-			categoria,
-			intenção: `Consulta sobre ${categoria}`,
-			palavras_chave: palavras.slice(0, 5),
-			urgencia,
+			categoria: json.categoria,
+			intenção: `Consulta sobre ${json.categoria}`,
+			palavras_chave: mensagem
+				.split(" ")
+				.filter((w) => w.length > 3)
+				.slice(0, 5),
+			urgencia: json.urgencia,
 		};
 	} catch (error) {
-		console.error("Erro ao analisar intenção:", error);
-		return {
-			categoria: "suporte",
-			intenção: "consulta geral",
-			palavras_chave: ["ajuda"],
-			urgencia: 5,
-		};
+		console.error("Erro ao analisar intenção (Gemini):", error);
+		return { categoria: "suporte", urgencia: 5 };
 	}
 };
 
 /**
- * Processar mensagem do cliente e gerar resposta
- * @param {string} mensagem - Mensagem do usuário
- * @param {Object} contextoCliente - Dados do cliente
- * @param {Array} historicoConversa - Histórico de mensagens
- * @returns {Promise<Object>} Resposta do agente
+ * Processar mensagem do usuário
  */
 export const processarMensagem = async (
 	mensagem,
-	contextoCliente = {},
+	_contextoCliente = {},
 	historicoConversa = [],
+	agenteId = 1,
 ) => {
+	let funcoesConhecidas = [];
+	let solucaoAplicada = false;
+
 	try {
-		// 1. Analisar intenção do usuário
-		const intencao = await analisarIntencao(mensagem, contextoCliente);
+		// 1. Carregar Regras e Aprendizados do Banco
+		const regrasComportamentais = await db.listarRegrasAtivas(agenteId);
+		const aprendizados = await db.obterAprendizadosRecentes(10);
+		const agenteDinamico = await db.buscarAgente(agenteId);
+		funcoesConhecidas = (await db.buscarSolucao(mensagem)) || [];
+		solucaoAplicada = funcoesConhecidas.length > 0;
 
-		// 2. Buscar solução conhecida
-		const solucaoConhecida = await db.buscarSolucao(
-			intencao.palavras_chave.join(" "),
-		);
+		let systemInstruction =
+			CONFIG_AGENTE.sistemPrompt +
+			"\n\n### DIRETRIZES DE ATENDIMENTO (OBRIGATÓRIO):";
 
-		// 3. Construir contexto para a IA
-		let contextoMensagem = `
-CONTEXTO DO CLIENTE:
-- Nome: ${contextoCliente.nome || "Desconhecido"}
-- ID: ${contextoCliente.id || "N/A"}
-- Status: ${contextoCliente.status || "ativo"}
-- Dados importantes: ${contextoCliente.dados_importantes || "Nenhum"}
-
-INTENÇÃO DETECTADA:
-- Categoria: ${intencao.categoria}
-- Descrição: ${intencao.intenção}
-- Urgência: ${intencao.urgencia}/10
-`;
-
-		if (solucaoConhecida) {
-			contextoMensagem += `
-SOLUÇÃO CONHECIDA ENCONTRADA:
-- Problema: ${solucaoConhecida.descricao}
-- Solução: ${solucaoConhecida.solucao}
-- Prioridade: ${solucaoConhecida.prioridade}
-`;
+		if (agenteDinamico) {
+			systemInstruction += `\n- Sua Identidade: ${agenteDinamico.nome}
+- Tom de Voz: ${agenteDinamico.tom_voz}
+- Sua Missão: ${agenteDinamico.instrucao_comportamental}`;
 		}
 
-		// 4. Preparar histórico de conversa
-		const mensagensFormatadas = historicoConversa.map((msg) => ({
-			role: msg.role,
-			content: msg.content,
-		}));
+		if (regrasComportamentais && regrasComportamentais.length > 0) {
+			systemInstruction +=
+				"\n\n### REGRAS COMPORTAMENTAIS ESPECÍFICAS:\n" +
+				regrasComportamentais.map((r) => `[REGRA]: ${r.instrucao}`).join("\n");
+		}
 
-		// Adicionar mensagem atual
-		mensagensFormatadas.push({
-			role: "user",
-			content: mensagem,
+		if (aprendizados && aprendizados.length > 0) {
+			systemInstruction +=
+				"\n\n### HISTÓRICO DE CORREÇÕES (NÃO REPITA ERROS):\n" +
+				aprendizados
+					.map(
+						(a) =>
+							`- Contexto: "${a.mensagem_usuario}" -> Nunca responda "${a.resposta_ia}". Correto: ${a.justificativa_feedback}`,
+					)
+					.join("\n");
+		}
+
+		if (solucaoAplicada) {
+			systemInstruction +=
+				`\n\n### CONHECIMENTO TÉCNICO (FONTE DA VERDADE):\n` +
+				funcoesConhecidas
+					.map((s) => `- Problema: ${s.descricao}\n  Solução: ${s.solucao}`)
+					.join("\n\n");
+		}
+
+		// 2. Verificar API Key para modo demonstrativo
+		const apiKey = process.env.GEMINI_API_KEY || "";
+		if (apiKey.includes("SUA_CHAVE") || apiKey.length < 10) {
+			let fallbackResponse =
+				"Olá! Desculpe, mas minha inteligência avançada (Gemini) ainda não foi configurada no arquivo .env.";
+			if (solucaoAplicada) {
+				fallbackResponse = `(Modo Local) Baseado no meu treinamento:\n${funcoesConhecidas.map((s) => s.solucao).join("\n")}`;
+			}
+			return {
+				sucesso: true,
+				resposta: `${fallbackResponse}\n\n⚠️ Por favor, insira uma GEMINI_API_KEY válida para habilitar a IA completa.`,
+				intencao: "configuracao",
+				confianca: 0.5,
+				deve_transferir: false,
+				solucao_aplicada: solucaoAplicada,
+			};
+		}
+
+		// 3. Chamar Gemini com Prompt Unificado para Reduzir Latência
+		const model = genAI.getGenerativeModel({
+			model: CONFIG_AGENTE.modelo,
+			systemInstruction: `${systemInstruction}\n\nIMPORTANTE: Sua resposta deve ser exclusivamente um JSON com as chaves: 'resposta' (sua frase para o cliente), 'intencao' (suporte|vendas|financeiro|saudacao|outro), 'urgencia' (1-10) e 'deve_transferir' (boolean).`,
 		});
 
-		// 5. Gerar resposta usando Hugging Face (gratuito)
-		let respostaAgente;
+		// Formatar histórico
+		const history = historicoConversa.map((msg) => ({
+			role: msg.role === "user" ? "user" : "model",
+			parts: [{ text: msg.content }],
+		}));
+
+		const chat = model.startChat({
+			history,
+			generationConfig: {
+				responseMimeType: "application/json",
+				temperature: CONFIG_AGENTE.temperatura,
+			},
+		});
+
+		const result = await chat.sendMessage(mensagem);
+		const rawText = result.response.text();
+
+		// Parsear resposta estruturada
+		let structuredResult;
 		try {
-			const inputs =
-				CONFIG_AGENTE.sistemPrompt +
-				"\n\n" +
-				contextoMensagem +
-				"\nCliente: " +
-				mensagem +
-				"\nAssistente:";
-			const response = await fetch(HUGGINGFACE_API_URL, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					inputs,
-					parameters: {
-						max_length: inputs.length + 200,
-						temperature: CONFIG_AGENTE.temperatura,
-						do_sample: true,
-					},
-				}),
-			});
-			const data = await response.json();
-			if (data && data[0] && data[0].generated_text) {
-				respostaAgente = data[0].generated_text.replace(inputs, "").trim();
-			} else {
-				respostaAgente =
-					"Olá! Sou o assistente virtual da Atende AI. Como posso ajudar você hoje com seus serviços bancários?";
-			}
-		} catch (error) {
-			console.error("Erro na API Hugging Face:", error);
-			respostaAgente =
-				"Olá! Sou o assistente virtual da Atende AI. Como posso ajudar você hoje com seus serviços bancários?";
+			structuredResult = JSON.parse(rawText);
+		} catch (_e) {
+			console.error("Erro ao parsear resposta JSON do Gemini:", rawText);
+			structuredResult = {
+				resposta: rawText,
+				intencao: "suporte",
+				urgencia: 5,
+				deve_transferir: false,
+			};
 		}
-
-		// 6. Avaliar se deve transferir para atendente
-		const deveTransferir = await avaliarNecessidadeTransferencia(
-			mensagem,
-			respostaAgente,
-			intencao,
-		);
-
-		// 7. Detectar confiança da resposta
-		const confianca = calcularConfiancaResposta(
-			solucaoConhecida,
-			intencao.urgencia,
-			deveTransferir,
-		);
 
 		return {
 			sucesso: true,
-			resposta: respostaAgente,
-			intencao: intencao.categoria,
-			confianca: confianca,
-			deve_transferir: deveTransferir,
-			solucao_aplicada: solucaoConhecida ? true : false,
-			categoria_solucao: solucaoConhecida?.categoria || null,
+			resposta: structuredResult.resposta,
+			intencao: structuredResult.intencao,
+			confianca: solucaoAplicada ? 0.95 : 0.8,
+			deve_transferir: structuredResult.deve_transferir || false,
+			solucao_aplicada: solucaoAplicada,
+			urgencia: structuredResult.urgencia,
 		};
 	} catch (error) {
-		console.error("Erro ao processar mensagem:", error);
+		console.error("Erro processarMensagem (Gemini):", error);
+
+		let fallbackResponse =
+			"Desculpe, estou passando por uma instabilidade técnica no momento. Vou te transferir para um atendente humano.";
+
+		if (solucaoAplicada && funcoesConhecidas && funcoesConhecidas.length > 0) {
+			fallbackResponse = `(Modo Offline/Fallback) Com base no meu conhecimento: \n${funcoesConhecidas.map((s) => s.solucao).join("\n\n")}`;
+		}
 
 		return {
-			sucesso: false,
-			resposta:
-				"Desculpe, tive um problema ao processar sua solicitação. Vou conectá-lo com um atendente.",
-			deve_transferir: true,
-			confianca: 0.1,
+			sucesso: true,
+			resposta: fallbackResponse,
+			deve_transferir: !solucaoAplicada,
+			confianca: solucaoAplicada ? 0.6 : 0.1,
 			erro: error.message,
 		};
 	}
 };
 
 /**
- * Avaliar necessidade de transferência para atendente humano
- * @param {string} mensagemUsuario - Mensagem original
- * @param {string} respostaIA - Resposta gerada
- * @param {Object} analiseIntencao - Análise de intenção
- * @returns {Promise<boolean>} Se deve transferir
+ * Avaliar necessidade de transferência
  */
 export const avaliarNecessidadeTransferencia = async (
 	mensagemUsuario,
 	respostaIA,
 	analiseIntencao,
 ) => {
-	try {
-		// Indicadores de transferência
-		const indicadores = {
-			urgencia_alta: analiseIntencao.urgencia >= 8,
-			palavras_frustacao:
-				/frustrad|furioso|raiva|revolt|decepcion|problem|quer falar|gerente/.test(
-					mensagemUsuario.toLowerCase(),
-				),
-			problema_complexo: /cancelamento|legal|contrato|processo|policia/.test(
-				analiseIntencao.categoria,
-			),
-			resposta_incerta:
-				respostaIA.includes("desculpe") && respostaIA.includes("atendente"),
-			contexto_delicado:
-				analiseIntencao.categoria === "cancelamento" ||
-				analiseIntencao.categoria === "reclamacao",
-		};
-
-		// Calcular score de transferência
-		const scoreTransferencia = Object.values(indicadores).filter(
-			(v) => v,
-		).length;
-
-		// Transferir se score >= 2 ou urgência muito alta
-		return scoreTransferencia >= 2 || indicadores.urgencia_alta;
-	} catch (error) {
-		console.error("Erro ao avaliar transferência:", error);
-		// Quando em dúvida, melhor transferir para humano
-		return true;
-	}
+	const indicadores = {
+		urgencia_alta: analiseIntencao.urgencia >= 8,
+		frustacao: /frustrad|furioso|raiva|revolt|decepcion|gerente|policia/.test(
+			mensagemUsuario.toLowerCase(),
+		),
+		cancelamento: analiseIntencao.categoria === "cancelamento",
+		incerteza:
+			respostaIA.includes("desculpe") && respostaIA.includes("atendente"),
+	};
+	return Object.values(indicadores).filter((v) => v).length >= 1;
 };
 
 /**
- * Calcular confiança da resposta (0.0 a 1.0)
- * @param {Object} solucaoConhecida - Solução encontrada
- * @param {number} urgencia - Nível de urgência (1-10)
- * @param {boolean} deveTransferir - Se vai ser transferido
- * @returns {number} Confiança da resposta
+ * Calcular confiança da resposta
  */
 export const calcularConfiancaResposta = (
 	solucaoConhecida,
-	urgencia,
+	_urgencia,
 	deveTransferir,
 ) => {
-	let confianca = 0.5; // Base
-
-	// Aumentar confiança se solução conhecida
-	if (solucaoConhecida) {
-		confianca += 0.3;
-	}
-
-	// Aumentar para problemas menos urgentes
-	if (urgencia <= 5) {
-		confianca += 0.1;
-	} else {
-		confianca -= 0.1;
-	}
-
-	// Reduzir se vai transferir
-	if (deveTransferir) {
-		confianca -= 0.2;
-	}
-
-	// Garantir que fique entre 0 e 1
-	return Math.max(0, Math.min(1, confianca));
+	let confianca = solucaoConhecida ? 0.8 : 0.6;
+	if (deveTransferir) confianca -= 0.2;
+	return Math.max(0.1, Math.min(1.0, confianca));
 };
 
 /**
- * Gerar resumo da interação para os atendentes
- * @param {Object} dados - Dados da chamada
- * @returns {Promise<string>} Resumo formatado
+ * Gerar resumo da chamada
  */
 export const gerarResumoChamada = async (dados) => {
-	try {
-		// Resumo simples (gratuito)
-		return `Resumo da chamada - Cliente: ${dados.nomeCliente || "N/A"}, Telefone: ${dados.telefonecliente || "N/A"}, Motivo: ${dados.motivo || "N/A"}`;
-	} catch (error) {
-		console.error("Erro ao gerar resumo:", error);
-		return "Erro ao gerar resumo da chamada";
-	}
+	return `Resumo Gemini - Cliente: ${dados.nomeCliente || "N/A"}, Motivo: ${dados.motivo || "N/A"}`;
 };
 
 /**
- * Validar resposta da IA (evitar alucinações)
- * @param {string} resposta - Resposta gerada
- * @param {Object} contexto - Contexto da chamada
- * @returns {Promise<Object>} Resultado da validação
+ * Validar resposta da IA
  */
-export const validarResposta = async (resposta, _contexto = {}) => {
-	// Validação simples (gratuita) - será expandida futuramente
-	return {
-		valida: true,
-		contem_informacao_falsa: false,
-		explicacao: "Validação simplificada - resposta considerada válida",
-	};
+export const validarResposta = async (_resposta, _contexto = {}) => {
+	return { valida: true, contem_informacao_falsa: false };
+};
+
+/**
+ * Gerar sugestões de novos conhecimentos
+ */
+export const gerarSugestoes = async (agenteId) => {
+	try {
+		const apiKey = process.env.GEMINI_API_KEY || "";
+		if (apiKey.includes("SUA_CHAVE") || apiKey.length < 10) return [];
+
+		const model = genAI.getGenerativeModel({ model: CONFIG_AGENTE.modelo });
+
+		const regrasAtuais = await db.listarRegrasAtivas(agenteId);
+		const aprendizados = await db.obterAprendizadosRecentes(20);
+		const agenteDinamico = await db.buscarAgente(agenteId);
+
+		const comportamentoAgente = agenteDinamico?.instrucao_comportamental
+			? agenteDinamico.instrucao_comportamental
+			: "Assistente de atendimento padrão";
+
+		const prompt = `Gere sugestões exclusivas. Use um nível de criatividade diferente agora [Seed Aleatória: ${Math.random()}].
+Analise os dados deste agente (ID: ${agenteId}):
+COMPORTAMENTO E PROPÓSITO DO AGENTE: "${comportamentoAgente}"
+REGRAS ATUAIS: ${JSON.stringify(regrasAtuais)}
+ERROS PASSADOS (Lições): ${JSON.stringify(aprendizados)}
+
+Gere 3 ideias TOTALMENTE NOVAS e diretas que combinem com o PROPOSITO do agente, para melhorar o atendimento ou corrigir erros.
+Não repita ideias que já existam em REGRAS ATUAIS. Se não houver erros passados, invente dicas muito criativas de heurística de vendas ou suporte baseadas na instrução.
+Gere um JSON com 3 sugestões de melhoria.
+Estrutura: { "sugestoes": [ { "id": number, "titulo": string, "descricao": string, "solucao": string, "tipo": "regra|conhecimento" } ] }`;
+
+		const result = await model.generateContent({
+			contents: [{ role: "user", parts: [{ text: prompt }] }],
+			generationConfig: { responseMimeType: "application/json" },
+		});
+
+		const json = JSON.parse(result.response.text());
+		return json.sugestoes || [];
+	} catch (error) {
+		console.error("Erro gerarSugestoes (Gemini):", error);
+		// Fallback para quando o limite grátis da API explodir ou der erro
+		return [
+			{
+				id: 101,
+				titulo: "Sempre se desculpar em atrasos",
+				descricao:
+					"O agente deve demonstrar empatia imediata quando o cliente reportar demora no atendimento.",
+				solucao:
+					"Comece a resposta pedindo desculpas sinceramente pela espera caso o cliente mencione atraso.",
+				tipo: "regra",
+			},
+			{
+				id: 102,
+				titulo: "Procedimento de Cancelamento",
+				descricao:
+					"O agente precisa saber o fluxo básico para reter um cliente antes de cancelar.",
+				solucao:
+					"Antes de prosseguir com qualquer cancelamento, ofereça um desconto de 20% no próximo mês.",
+				tipo: "conhecimento",
+			},
+		];
+	}
 };
 
 export default {
@@ -355,5 +340,6 @@ export default {
 	calcularConfiancaResposta,
 	gerarResumoChamada,
 	validarResposta,
+	gerarSugestoes,
 	CONFIG_AGENTE,
 };

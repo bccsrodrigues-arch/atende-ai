@@ -382,15 +382,15 @@
       
       <div class="features-grid">
         <div class="feature-card">
-          <div class="feature-icon">⚙️</div>
-          <h3>Configuração Completa</h3>
-          <p>Personalize cada aspecto do seu agente de IA com configurações avançadas.</p>
+          <div class="feature-icon">🚀</div>
+          <h3>Comando da IA</h3>
+          <p>Treine o comportamento e teste em tempo real na mesma interface.</p>
         </div>
 
         <div class="feature-card">
-          <div class="feature-icon">🧪</div>
-          <h3>Teste em Tempo Real</h3>
-          <p>Valide suas configurações antes de colocar em produção.</p>
+          <div class="feature-icon">🧠</div>
+          <h3>Aprendizado por Feedback</h3>
+          <p>A IA aprende com suas correções (👍/👎) e evolui autonomamente.</p>
         </div>
 
         <div class="feature-card">
@@ -517,7 +517,7 @@
 
   <script>
     // Authentication functions
-    function openModal(tab = 'login') {
+    function _openModal(tab = 'login') {
       document.getElementById('authModal').style.display = 'block';
       switchTab(tab);
     }
@@ -557,7 +557,7 @@
     }
 
     // Login form handler
-    document.getElementById('formLogin').addEventListener('submit', function(e) {
+    document.getElementById('formLogin').addEventListener('submit', (e) => {
       e.preventDefault();
       
       const email = document.getElementById('loginEmail').value;
@@ -576,7 +576,7 @@
     });
 
     // Register form handler
-    document.getElementById('formRegister').addEventListener('submit', function(e) {
+    document.getElementById('formRegister').addEventListener('submit', (e) => {
       e.preventDefault();
       
       const name = document.getElementById('registerName').value;
@@ -607,14 +607,14 @@
     });
 
     // Close modal when clicking outside
-    window.onclick = function(event) {
+    window.onclick = (event) => {
       const modal = document.getElementById('authModal');
       if (event.target === modal) {
         closeModal();
       }
     }
 
-    function logout() {
+    function _logout() {
       if (confirm('Deseja sair do sistema?')) {
         localStorage.removeItem('atendeAI_currentUser');
         window.location.href = '/';
@@ -622,7 +622,7 @@
     }
 
     // Check if user is logged in on page load
-    window.addEventListener('load', function() {
+    window.addEventListener('load', () => {
       const currentUser = localStorage.getItem('atendeAI_currentUser');
       if (currentUser && window.location.pathname === '/') {
         window.location.href = '/dashboard';

@@ -9,11 +9,11 @@
  * - Autenticação básica
  */
 
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
 
 // Importar serviços
 import dbService from "./database.js";
@@ -45,7 +45,7 @@ app.use(
 );
 
 // Logging de requisições
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
 	console.log(`\n📡 ${req.method} ${req.path}`);
 	console.log("   Headers:", req.headers);
 	next();
@@ -241,7 +241,7 @@ app.put("/api/clientes/:id", async (req, res) => {
  * GET /api/treinamento/problemas
  * Listar base de conhecimento (problemas resolvidos)
  */
-app.get("/api/treinamento/problemas", async (req, res) => {
+app.get("/api/treinamento/problemas", async (_req, res) => {
 	try {
 		const problemas = await dbService.listarProblemas();
 		res.json({ sucesso: true, dados: problemas });
@@ -286,6 +286,18 @@ app.post("/api/treinamento/problemas", async (req, res) => {
 });
 
 /**
+ * PUT /api/treinamento/problemas/:id
+ */
+app.put("/api/treinamento/problemas/:id", async (req, res) => {
+	try {
+		const sucesso = await dbService.atualizarProblema(req.params.id, req.body);
+		res.json({ sucesso });
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+/**
  * DELETE /api/treinamento/problemas/:id
  * Remover regra da IA
  */
@@ -315,38 +327,50 @@ app.delete("/api/treinamento/problemas/:id", async (req, res) => {
  * Body: { mensagem, cliente_id?, historico? }
  */
 app.post("/api/ia/processar", async (req, res) => {
+	const { mensagem, cliente_id, chamada_id, agente_id, historico } = req.body;
+
+	if (!mensagem) {
+		return res.status(400).json({ sucesso: false, erro: "Mensagem vazia" });
+	}
+
 	try {
-		const { mensagem, cliente_id, historico } = req.body;
+		// 1. Processar com o motor de IA do iaService (com suporte a agente_id)
+		const targetAgenteId = agente_id || 1;
 
-		if (!mensagem) {
-			return res.status(400).json({
-				sucesso: false,
-				erro: "Mensagem é obrigatória",
-			});
-		}
-
-		// Buscar cliente se fornecido
-		let cliente = null;
-		if (cliente_id) {
-			cliente = await dbService.buscarClientePorId(cliente_id);
-		}
-
-		// Processar com IA
-		const resposta = await iaService.processarMensagem(
+		// O iaService.processarMensagem já cuida das regras e aprendizado
+		const resultadoIa = await iaService.processarMensagem(
 			mensagem,
-			cliente || {},
+			{ id: cliente_id },
 			historico || [],
+			targetAgenteId,
+		);
+
+		// 2. Registrar a interação no banco
+		const idChamadaContexto = chamada_id || 1;
+		const interacaoId = await dbService.registrarInteracaoIa(
+			idChamadaContexto,
+			{
+				tipo: "texto",
+				mensagem_usuario: mensagem,
+				resposta_ia: resultadoIa.resposta,
+				confianca_resposta: resultadoIa.confianca,
+				agente_id: targetAgenteId,
+			},
 		);
 
 		res.json({
 			sucesso: true,
-			resposta,
+			interacao_id: interacaoId,
+			resposta: {
+				...resultadoIa,
+				agente_id: targetAgenteId,
+			},
 		});
 	} catch (error) {
-		res.status(500).json({
-			sucesso: false,
-			erro: error.message,
-		});
+		console.error("Erro ao processar IA (Server):", error);
+		res
+			.status(500)
+			.json({ sucesso: false, erro: "Falha no processamento da IA" });
 	}
 });
 
@@ -377,6 +401,135 @@ app.post("/api/ia/analise-intencao", async (req, res) => {
 			sucesso: false,
 			erro: error.message,
 		});
+	}
+});
+
+/**
+ * GET /api/ia/sugestoes/:agente_id
+ * Gerar sugestões de conhecimento via IA
+ */
+app.get("/api/ia/sugestoes/:agente_id", async (req, res) => {
+	try {
+		const sugestoes = await iaService.gerarSugestoes(req.params.agente_id);
+		res.json({ sucesso: true, sugestoes });
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+/**
+ * ================================================
+ * ROTAS DE VOZ (ELEVENLABS TTS)
+ * ================================================
+ */
+
+/**
+ * POST /api/voz/tts
+ * Gerar áudio com ElevenLabs
+ * Body: { texto, genero: "male"|"female" }
+ */
+app.post("/api/voz/tts", async (req, res) => {
+	const { texto, genero } = req.body;
+	const apiKey = process.env.ELEVENLABS_API_KEY || "";
+
+	if (!texto) {
+		return res.status(400).json({ sucesso: false, erro: "Texto vazio" });
+	}
+
+	if (apiKey.includes("SUA_CHAVE") || apiKey.length < 10) {
+		return res.status(400).json({
+			sucesso: false,
+			erro: "ELEVENLABS_API_KEY não configurada no .env",
+		});
+	}
+
+	let voiceId = "EXAVITQu4vr4xnSDxMaL"; // Default Female (Alice)
+	if (genero === "male") {
+		voiceId = process.env.ELEVENLABS_VOICE_MALE || "pNInz6obpgDQGcFmaJgB";
+	} else if (genero === "female") {
+		voiceId = process.env.ELEVENLABS_VOICE_FEMALE || "EXAVITQu4vr4xnSDxMaL";
+	} else if (genero && genero.length > 5) {
+		// Se vier um ID específico da ElevenLabs
+		voiceId = genero;
+	}
+
+	try {
+		console.log(`[TTS] Gerando voz com ID: ${voiceId}`);
+		const response = await fetch(
+			`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+			{
+				method: "POST",
+				headers: {
+					"xi-api-key": apiKey,
+					"Content-Type": "application/json",
+					Accept: "audio/mpeg",
+				},
+				body: JSON.stringify({
+					text: texto,
+					model_id: "eleven_multilingual_v2",
+					voice_settings: {
+						stability: 0.5,
+						similarity_boost: 0.75,
+						style: 0.3,
+					},
+				}),
+			},
+		);
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			console.error("ElevenLabs erro:", response.status, errorText);
+			let msgDetalhada = response.statusText;
+			try {
+				const errorJson = JSON.parse(errorText);
+				if (errorJson.detail?.message) {
+					msgDetalhada = errorJson.detail.message;
+				}
+			} catch (_e) {}
+			return res
+				.status(response.status)
+				.json({ sucesso: false, erro: `ElevenLabs: ${msgDetalhada}` });
+		}
+
+		// Enviar áudio direto como stream
+		res.set({
+			"Content-Type": "audio/mpeg",
+			"Transfer-Encoding": "chunked",
+		});
+
+		const arrayBuffer = await response.arrayBuffer();
+		res.send(Buffer.from(arrayBuffer));
+	} catch (error) {
+		console.error("Erro TTS ElevenLabs:", error);
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+/**
+ * GET /api/voz/voices
+ * Listar vozes disponíveis na conta ElevenLabs
+ */
+app.get("/api/voz/voices", async (_req, res) => {
+	const apiKey = process.env.ELEVENLABS_API_KEY || "";
+
+	if (apiKey.includes("SUA_CHAVE") || apiKey.length < 10) {
+		return res.json({ sucesso: false, erro: "API Key não configurada" });
+	}
+
+	try {
+		const response = await fetch("https://api.elevenlabs.io/v1/voices", {
+			headers: { "xi-api-key": apiKey },
+		});
+		const data = await response.json();
+		const voices = (data.voices || []).map((v) => ({
+			id: v.voice_id,
+			nome: v.name,
+			categoria: v.category,
+			preview: v.preview_url,
+		}));
+		res.json({ sucesso: true, voices });
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
 	}
 });
 
@@ -418,7 +571,7 @@ app.get("/api/chamadas/historico/:cliente_id", async (req, res) => {
  * GET /api/admin/estatisticas
  * Obter estatísticas gerais do sistema
  */
-app.get("/api/admin/estatisticas", async (req, res) => {
+app.get("/api/admin/estatisticas", async (_req, res) => {
 	try {
 		const stats = await dbService.obterEstatisticas();
 
@@ -438,7 +591,7 @@ app.get("/api/admin/estatisticas", async (req, res) => {
  * GET /api/admin/dashboard
  * Dados completos para o dashboard
  */
-app.get("/api/admin/dashboard", async (req, res) => {
+app.get("/api/admin/dashboard", async (_req, res) => {
 	try {
 		const stats = await dbService.obterEstatisticas();
 		const clientesRecentes = await dbService.listarClientes(1, 5);
@@ -460,6 +613,135 @@ app.get("/api/admin/dashboard", async (req, res) => {
 
 /**
  * ================================================
+ * ROTAS DE TREINAMENTO E APRENDIZADO
+ * ================================================
+ */
+
+/**
+ * GET /api/admin/regras
+ * Listar regras de comportamento ativas
+ */
+app.get("/api/admin/regras", async (req, res) => {
+	try {
+		const agenteId = req.query.agente_id;
+		const regras = await dbService.listarRegrasAtivas(agenteId);
+		res.json({ sucesso: true, regras });
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+/**
+ * POST /api/admin/regras
+ * Adicionar nova regra de comportamento
+ */
+app.post("/api/admin/regras", async (req, res) => {
+	try {
+		const { nome, instrucao, agente_id } = req.body;
+		if (!nome || !instrucao) {
+			return res
+				.status(400)
+				.json({ sucesso: false, erro: "Nome e instrução são obrigatórios" });
+		}
+		const id = await dbService.adicionarRegra(nome, instrucao, agente_id);
+		res.json({ sucesso: true, id });
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+/**
+ * DELETE /api/admin/regras/:id
+ */
+app.delete("/api/admin/regras/:id", async (req, res) => {
+	try {
+		const sucesso = await dbService.deletarRegra(req.params.id);
+		res.json({ sucesso });
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+/**
+ * PUT /api/admin/regras/:id
+ */
+app.put("/api/admin/regras/:id", async (req, res) => {
+	try {
+		const { instrucao } = req.body;
+		const sucesso = await dbService.atualizarRegra(req.params.id, instrucao);
+		res.json({ sucesso });
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+/**
+ * POST /api/ia/feedback
+ * Registrar feedback (positivo/negativo) para aprendizado
+ */
+app.post("/api/ia/feedback", async (req, res) => {
+	try {
+		const { interacao_id, feedback, justificativa } = req.body;
+		if (!interacao_id || !feedback) {
+			return res.status(400).json({
+				sucesso: false,
+				erro: "ID da interação e feedback são obrigatórios",
+			});
+		}
+		const sucesso = await dbService.registrarFeedback(
+			interacao_id,
+			feedback,
+			justificativa,
+		);
+		if (sucesso) {
+			res.json({
+				sucesso: true,
+				mensagem: "Feedback registrado para aprendizado",
+			});
+		} else {
+			res.status(400).json({
+				sucesso: false,
+				erro: "Não foi possível registrar o feedback. ID pode ser inválido.",
+			});
+		}
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+/**
+ * GET /api/admin/aprendizados
+ * Listar erros/feedbacks negativos para visualização de aprendizado
+ */
+app.get("/api/admin/aprendizados", async (_req, res) => {
+	try {
+		const aprendizados = await dbService.obterAprendizadosRecentes(20);
+		res.json({ sucesso: true, aprendizados });
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+/**
+ * DELETE /api/admin/aprendizados/:id
+ * Excluir um aprendizado/feedback negativo
+ */
+app.delete("/api/admin/aprendizados/:id", async (req, res) => {
+	try {
+		const sucesso = await dbService.deletarAprendizado(req.params.id);
+		if (sucesso) {
+			res.json({ sucesso: true, mensagem: "Aprendizado excluído" });
+		} else {
+			res
+				.status(404)
+				.json({ sucesso: false, erro: "Aprendizado não encontrado" });
+		}
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+/**
+ * ================================================
  * ROTAS ESTÁTICAS
  * ================================================
  */
@@ -468,7 +750,7 @@ app.get("/api/admin/dashboard", async (req, res) => {
  * GET /
  * Servir página principal
  */
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
 	res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
 
@@ -476,7 +758,7 @@ app.get("/", (req, res) => {
  * GET /dashboard
  * Servir dashboard admin
  */
-app.get("/dashboard", (req, res) => {
+app.get("/dashboard", (_req, res) => {
 	res.sendFile(path.join(__dirname, "../frontend/dashboard.html"));
 });
 
@@ -487,19 +769,71 @@ app.get("/dashboard", (req, res) => {
  */
 
 /**
+ * ROTAS DE AGENTES
+ */
+app.get("/api/admin/agentes", async (_req, res) => {
+	try {
+		const agentes = await dbService.listarAgentes();
+		res.json({ sucesso: true, agentes });
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+app.get("/api/admin/agentes/:id", async (req, res) => {
+	try {
+		const agente = await dbService.buscarAgente(req.params.id);
+		if (!agente)
+			return res
+				.status(404)
+				.json({ sucesso: false, erro: "Agente não encontrado" });
+		res.json({ sucesso: true, agente });
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+app.post("/api/admin/agentes", async (req, res) => {
+	try {
+		const id = await dbService.criarAgente(req.body);
+		res.json({ sucesso: true, id });
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+app.put("/api/admin/agentes/:id", async (req, res) => {
+	try {
+		const sucesso = await dbService.atualizarAgente(req.params.id, req.body);
+		res.json({ sucesso });
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+app.delete("/api/admin/agentes/:id", async (req, res) => {
+	try {
+		const sucesso = await dbService.deletarAgente(req.params.id);
+		res.json({ sucesso });
+	} catch (error) {
+		res.status(500).json({ sucesso: false, erro: error.message });
+	}
+});
+
+/**
  * 404 - Rota não encontrada
  */
 app.use((req, res) => {
 	res.status(404).json({
 		sucesso: false,
-		erro: "Rota não encontrada: " + req.path,
+		erro: `Rota não encontrada: ${req.path}`,
 	});
 });
 
 /**
  * 500 - Erro geral
  */
-app.use((err, req, res, _next) => {
+app.use((err, _req, res, _next) => {
 	console.error("❌ Erro não tratado:", err);
 
 	res.status(500).json({

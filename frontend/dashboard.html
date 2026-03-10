@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard - Agente de IA para Atender Ligações</title>
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css?v=3">
 <script>
   // Check authentication on page load
-  window.addEventListener('load', function() {
+  window.addEventListener('load', () => {
     const currentUser = localStorage.getItem('atendeAI_currentUser');
     if (!currentUser) {
       window.location.href = '/';
@@ -24,34 +24,42 @@
     }
   });
 
-  function logout() {
+  function _logout() {
     if (confirm('Deseja sair do sistema?')) {
       localStorage.removeItem('atendeAI_currentUser');
       window.location.href = '/';
     }
   }
 
-  function showSection(section) {
+  function _showSection(section) {
+    // Hide dashboard grid
+    const grid = document.querySelector('.dashboard-grid');
+    if (grid) grid.style.display = 'none';
+
+    // Se for teste, redireciona para a nova aba chat-teste
+    const targetSection = (section === 'teste' || section === 'teste-ia') ? 'chat-teste' : section;
+
     // Hide all tab-content
     const allTabs = document.querySelectorAll('.tab-content');
     allTabs.forEach(tab => tab.classList.remove('active'));
     
     // Show selected section
-    const selectedTab = document.getElementById(`tab-${section}`);
+    const selectedTab = document.getElementById(`tab-${targetSection}`);
     if (selectedTab) {
       selectedTab.classList.add('active');
     }
     
-    // Hide dashboard grid
-    document.querySelector('.dashboard-grid').style.display = 'none';
-    
     // Call load functions if they exist
-    if (section === 'treinamento' && typeof carregarTreinamentos === 'function') {
+    if (targetSection === 'treinamento' && typeof carregarTreinamentos === 'function') {
       carregarTreinamentos();
+    }
+    if (targetSection === 'chat-teste') {
+      if (typeof carregarRegrasBrain === 'function') carregarRegrasBrain();
+      if (typeof atualizarStatsSidebar === 'function') atualizarStatsSidebar();
     }
   }
 
-  function showDashboard() {
+  function _showDashboard() {
     // Hide all tab-content
     const allTabs = document.querySelectorAll('.tab-content');
     allTabs.forEach(tab => tab.classList.remove('active'));
@@ -79,39 +87,24 @@
           <p>Configure o agente de IA, voz e scripts</p>
         </div>
         <div class="dashboard-card" onclick="showSection('teste')">
-          <div class="card-icon">🧪</div>
-          <h3>Teste</h3>
-          <p>Teste o agente e veja o modelo configurado</p>
+          <div class="card-icon">🚀</div>
+          <h3>Comando da IA</h3>
+          <p>Treine o comportamento e teste em tempo real</p>
         </div>
         <div class="dashboard-card" onclick="showSection('atendimento')">
           <div class="card-icon">📞</div>
           <h3>Atendimento</h3>
           <p>Gerencie atendimentos em tempo real</p>
         </div>
-        <div class="dashboard-card" onclick="showSection('historico')">
-          <div class="card-icon">📚</div>
-          <h3>Histórico</h3>
-          <p>Veja o histórico de atendimentos</p>
-        </div>
         <div class="dashboard-card" onclick="showSection('clientes')">
           <div class="card-icon">👥</div>
           <h3>Clientes</h3>
-          <p>Gerencie a base de clientes</p>
+          <p>Gerencie sua base de clientes</p>
         </div>
-        <div class="dashboard-card" onclick="showSection('chamadas')">
-          <div class="card-icon">📞</div>
-          <h3>Chamadas</h3>
-          <p>Monitore chamadas recebidas</p>
-        </div>
-        <div class="dashboard-card" onclick="showSection('teste-ia')">
-          <div class="card-icon">🧠</div>
-          <h3>IA</h3>
-          <p>Teste a inteligência artificial</p>
-        </div>
-        <div class="dashboard-card" onclick="showSection('treinamento')">
-          <div class="card-icon">🎓</div>
-          <h3>Treinamento (RAG)</h3>
-          <p>Ensine novos conhecimentos à IA</p>
+        <div class="dashboard-card" onclick="showSection('historico')">
+          <div class="card-icon">📚</div>
+          <h3>Histórico</h3>
+          <p>Acesse o log completo do sistema</p>
         </div>
       </div>
 
@@ -120,13 +113,33 @@
           <button class="btn btn-secondary" onclick="showDashboard()">← Voltar ao Dashboard</button>
           <h2>⚙️ Configuração do Agente</h2>
           <div class="config-tabs">
-            <button class="config-tab-btn active" onclick="switchConfigTab('geral', this)">Geral</button>
+            <button class="config-tab-btn active" onclick="switchConfigTab('agentes', this)">🛡️ Agentes</button>
+            <button class="config-tab-btn" onclick="switchConfigTab('geral', this)">Geral</button>
             <button class="config-tab-btn" onclick="switchConfigTab('voz', this)">Voz</button>
             <button class="config-tab-btn" onclick="switchConfigTab('scripts', this)">Scripts</button>
-            <button class="config-tab-btn" onclick="switchConfigTab('preview', this)">Preview</button>
           </div>
 
-          <div id="config-geral" class="config-content active">
+          <div id="config-agentes" class="config-content active">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <div class="tooltip-hover-wrapper" style="display: flex; align-items: center; gap: 8px; position: relative;">
+                <h3 style="margin:0;">Perfis de Agentes</h3>
+                <span class="info-icon">ℹ️</span>
+                <div class="tooltip-info-panel" style="left:0; right:auto;">
+                  <strong>🤖 Gerenciamento de Agentes</strong>
+                  <p>Cada agente é um "perfil" com personalidade, voz e regras próprias.</p>
+                  <p>⚙️ <b>Configurar</b> — Abre as configurações completas (nome, comportamento, regras) do agente selecionado.</p>
+                  <p>✏️ <b>Editar</b> — Abre o modal de edição rápida (voz, saudação, velocidade).</p>
+                  <p>🗑️ <b>Excluir</b> — Remove o agente permanentemente.</p>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-small" onclick="abrirNovoAgente()">+ Novo Agente</button>
+            </div>
+            <div id="lista-agentes-grid" class="agents-grid">
+              <!-- Cards de agentes via JS -->
+            </div>
+          </div>
+
+          <div id="config-geral" class="config-content">
             <h3>Configurações Gerais</h3>
             <div class="form-group">
               <label>Nome do Agente</label>
@@ -150,7 +163,24 @@
                 <option value="es-ES">Espanhol</option>
               </select>
             </div>
-            <button class="btn btn-primary" onclick="salvarConfigGeral()">Salvar Configurações</button>
+            <div class="form-group">
+              <label>🧠 Comportamento e proposito do Agente</label>
+              <textarea id="instrucao-comportamental-config" rows="3" placeholder="Ex: Seja um especialista técnico focado em clareza, educação e eficiência..."></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="salvarConfigGeral()" style="margin-bottom: 20px;">Salvar Configurações</button>
+
+            <div class="config-regras-section">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="margin:0;">🎭 Prompts de Inteligência (Regras)</h4>
+              </div>
+              <div class="side-form" style="margin-bottom: 15px;">
+                <textarea id="nova-regra-config" rows="2" placeholder="Adicione um prompt ou diretriz para a IA obedecer..."></textarea>
+                <button class="btn-add-mini" onclick="adicionarRegraConfig()">+ Adicionar Prompt</button>
+              </div>
+              <div id="lista-regras-config" class="mini-list-scroll" style="max-height: 300px;">
+                <!-- Populado via JS -->
+              </div>
+            </div>
           </div>
 
           <div id="config-voz" class="config-content">
@@ -168,11 +198,15 @@
               <span id="velocidade-valor">1.0x</span>
             </div>
             <div class="form-group">
-              <label>Tom da Voz</label>
-              <select id="tom-voz-audio">
-                <option value="female">Feminino</option>
+              <label>Tom da Voz (Gênero ou ID ElevenLabs)</label>
+              <input type="text" id="tom-voz-audio" list="opcoes-vozes" placeholder="female, male ou ID da ElevenLabs..." onchange="syncVoz(this.value)">
+              <datalist id="opcoes-vozes">
+                <option value="female">Feminino (Padrão)</option>
                 <option value="male">Masculino</option>
-              </select>
+                <option value="EXAVITQu4vr4xnSDxMaL">Rachel (Alice)</option>
+                <option value="pNInz6obpgDQGcFmaJgB">Adam</option>
+                <option value="RGymW84CSmfVugnA5tvA">Voz Personalizada 1</option>
+              </datalist>
             </div>
             <div class="form-group">
               <label>Testar Voz</label>
@@ -206,106 +240,6 @@
             <button class="btn btn-primary" onclick="salvarConfigScripts()">Salvar Scripts</button>
           </div>
 
-          <div id="config-preview" class="config-content">
-            <h3>Preview do Agente</h3>
-            <div class="preview-container">
-              <div class="preview-form">
-                <h4>Simular Conversa</h4>
-                <div class="form-group">
-                  <label>Mensagem do Cliente</label>
-                  <input type="text" id="preview-mensagem" placeholder="Digite uma mensagem de teste...">
-                </div>
-                <button class="btn btn-primary" onclick="executarPreview()">Executar Preview</button>
-              </div>
-              <div class="preview-resultado">
-                <h4>Resposta do Agente</h4>
-                <div id="preview-resposta" class="preview-box">
-                  <p>Clique em "Executar Preview" para ver como o agente responderia.</p>
-                </div>
-                <div class="preview-audio">
-                  <button class="btn btn-secondary" id="btn-preview-audio" onclick="reproduzirPreviewAudio()" disabled>🔊 Ouvir Resposta</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </section>
-
-        <!-- Teste -->
-        <section id="tab-teste" class="tab-content">
-          <button class="btn btn-secondary" onclick="showDashboard()">← Voltar ao Dashboard</button>
-          <h2>🧪 Teste do Agente</h2>
-          <section class="agent-model">
-            <h3>🤖 Modelo do Agente Configurado</h3>
-            <div class="model-preview">
-              <div class="model-card">
-                <div class="model-avatar">
-                  <span id="model-avatar">🤖</span>
-                </div>
-                <div class="model-info">
-                  <h4 id="model-nome">Assistente Virtual</h4>
-                  <p id="model-tom">Tom: Profissional</p>
-                  <p id="model-idioma">Idioma: Português (Brasil)</p>
-                  <p id="model-voz">Voz: Habilitada</p>
-                </div>
-              </div>
-              <div class="model-scripts">
-                <h4>Scripts Configurados</h4>
-                <div class="script-item">
-                  <strong>Saudação:</strong> <span id="preview-saudacao">Olá! Bem-vindo à Atende AI...</span>
-                </div>
-                <div class="script-item">
-                  <strong>Encerramento:</strong> <span id="preview-encerramento">Obrigado por entrar em contato...</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section class="test-area">
-            <h3>🧪 Área de Teste</h3>
-            <div class="test-container">
-              <div class="test-form">
-                <h4>Testar Agente</h4>
-                <div class="form-group">
-                  <label>Selecione um cliente (opcional)</label>
-                  <select id="select-cliente-teste">
-                    <option value="">Cliente anônimo</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Mensagem</label>
-                  <textarea id="input-mensagem" rows="4" placeholder="Digite a mensagem do cliente..."></textarea>
-                  <div class="input-actions">
-                    <button class="btn btn-secondary btn-small" id="btn-voice" onclick="iniciarGravacao()">🎤 Gravar Voz</button>
-                    <select id="exemplos-mensagem" onchange="carregarExemplo()">
-                      <option value="">Exemplos de mensagens</option>
-                      <option value="Qual é o saldo da minha conta?">Saldo da conta</option>
-                      <option value="Quero fazer uma transferência">Transferência</option>
-                      <option value="Preciso de ajuda com meu cartão">Problema com cartão</option>
-                      <option value="Como faço para abrir uma conta?">Abrir conta</option>
-                    </select>
-                  </div>
-                </div>
-                <button class="btn btn-primary" onclick="testarIA()">Processar</button>
-              </div>
-              <div class="test-resultado">
-                <h4>Resposta do Agente</h4>
-                <div id="resultado-ia" class="resultado-box">
-                  <p>A resposta aparecerá aqui...</p>
-                </div>
-                <div class="audio-controls">
-                  <button class="btn btn-secondary btn-small" id="btn-ouvir-resposta" onclick="ouvirUltimaResposta()" disabled>🔊 Ouvir Resposta</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="test-history">
-              <h3>📜 Histórico de Testes</h3>
-              <div id="historico-testes" class="history-list">
-                <p>Nenhum teste realizado ainda.</p>
-              </div>
-            </div>
-          </section>
         </section>
 
         <!-- Atendimento -->
@@ -325,6 +259,11 @@
               </div>
             </div>
             <div class="status-indicators">
+              <div class="indicator">
+                <select id="agente-seletor-atendimento" class="context-select" onchange="selecionarAgenteAtendimento()">
+                  <option value="">⚙️ Selecione o Agente p/ Atender</option>
+                </select>
+              </div>
               <div class="indicator">
                 <span class="indicator-icon" id="indicator-status">🔴</span>
                 <span class="indicator-text" id="status-text">Sistema Parado</span>
@@ -519,110 +458,141 @@
                 </tr>
               </thead>
               <tbody id="tbody-chamadas">
-                <tr>
-                  <td colspan="7" class="text-center">Carregando...</td>
-                </tr>
               </tbody>
             </table>
           </div>
         </section>
 
-        <!-- Teste IA -->
-        <section id="tab-teste-ia" class="tab-content">
-          <button class="btn btn-secondary" onclick="showDashboard()">← Voltar ao Dashboard</button>
-          <h2>🧠 Testar Agente de IA</h2>
-          <div class="test-container">
-            <div class="test-form">
-              <h3>Processar Mensagem</h3>
-              <div class="form-group">
-                <label>Selecione um cliente (opcional)</label>
-                <select id="select-cliente-teste-ia">
-                  <option value="">Cliente anônimo</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Mensagem</label>
-                <textarea id="input-mensagem-ia" rows="4" placeholder="Digite a mensagem do cliente..."></textarea>
-                <div class="input-actions">
-                  <button class="btn btn-secondary btn-small" id="btn-voice-ia" onclick="iniciarGravacao()">🎤 Gravar Voz</button>
-                  <select id="exemplos-mensagem-ia" onchange="carregarExemplo()">
-                    <option value="">Exemplos de mensagens</option>
-                    <option value="Qual é o saldo da minha conta?">Saldo da conta</option>
-                    <option value="Quero fazer uma transferência">Transferência</option>
-                    <option value="Preciso de ajuda com meu cartão">Problema com cartão</option>
-                    <option value="Como faço para abrir uma conta?">Abrir conta</option>
-                  </select>
+        <!-- Centro de Comando Unificado (MODERNO E COMPACTO) -->
+        <section id="tab-chat-teste" class="tab-content">
+          <div class="command-center-header">
+            <div style="display: flex; align-items: center; gap: 15px;">
+              <button class="btn btn-secondary btn-small" onclick="showDashboard()">← Dashboard</button>
+              <h2>🚀 Interface de Comando</h2>
+            </div>
+            <div class="top-selection-bar">
+              <select id="agente-seletor-playground" class="context-select" onchange="trocarAgentePlayground()">
+                <option value="">⚙️ Selecione um Agente</option>
+              </select>
+              <div class="mode-toggle tooltip-hover-wrapper" style="position: relative;">
+                <label class="switch-small">
+                  <input type="checkbox" id="toggle-parar-conhecimento">
+                  <span class="slider-small"></span>
+                </label>
+                <span class="toggle-label">Modo Produção</span>
+                <span class="info-icon">ℹ️</span>
+                <div class="tooltip-info-panel">
+                  <strong>🔒 Modo Produção</strong>
+                  <p>Quando <b>ATIVADO</b>, o agente usa <u>somente</u> o que já foi treinado. Novos feedbacks e treinamentos são bloqueados.</p>
+                  <p>Quando <b>DESATIVADO</b>, você está no modo treinamento e pode ensinar, corrigir e ajustar o agente livremente.</p>
                 </div>
               </div>
-              <button class="btn btn-primary" onclick="testarIA()">Processar</button>
-            </div>
-            <div class="test-resultado">
-              <h3>Resposta da IA</h3>
-              <div id="resultado-ia-ia" class="resultado-box">
-                <p>A resposta aparecerá aqui...</p>
-              </div>
-              <div class="audio-controls">
-                <button class="btn btn-secondary btn-small" id="btn-ouvir-resposta-ia" onclick="ouvirUltimaResposta()" disabled>🔊 Ouvir Resposta</button>
-              </div>
             </div>
           </div>
-        </section>
-
-        <!-- Treinamento Base Conhecimento -->
-        <section id="tab-treinamento" class="tab-content">
-          <button class="btn btn-secondary" onclick="showDashboard()">← Voltar ao Dashboard</button>
-          <h2>🎓 Treinamento da IA (Base de Conhecimento)</h2>
-          <p style="color: #6b7280; margin-bottom: 20px;">Use esta área para alimentar nossa IA com respostas, soluções e regras do seu negócio de modo que a IA passe a buscar essa informação em diálogos.</p>
-          
-          <button class="btn btn-primary" onclick="openFormAdicionarTreinamento()">➕ Novo Conhecimento/Regra</button>
-          
-          <div id="form-treinamento" class="form-container" style="display: none; margin-top: 15px;">
-            <h3>Ensinar a IA</h3>
-            <form id="formNovoTreinamento">
-              <div class="form-group">
-                <label>Categoria (Ex: Suporte, Vendas, Pagamentos)</label>
-                <input type="text" id="treino-categoria" required>
-              </div>
-              <div class="form-group">
-                <label>Descrição do Problema / Dúvida do Cliente</label>
-                <input type="text" id="treino-descricao" required placeholder="O que o cliente relatou ou perguntou?">
-              </div>
-              <div class="form-group">
-                <label>Solução ou Resposta a ser dada pela IA</label>
-                <textarea id="treino-solucao" rows="4" required placeholder="Como a IA deve resolver/responder para o cliente?"></textarea>
-              </div>
-              <div class="form-group">
-                <label>Palavras-Chave (Separadas por vírgula)</label>
-                <input type="text" id="treino-palavras" placeholder="cartão, senha, fatura, erro...">
-              </div>
-              <div class="form-group">
-                <label>Prioridade da Regra (1-10)</label>
-                <input type="number" id="treino-prioridade" min="1" max="10" value="5">
-              </div>
-              <div class="form-actions">
-                <button type="submit" class="btn btn-success">Salvar Conhecimento</button>
-                <button type="button" class="btn btn-secondary" onclick="closeFormTreinamento()">Cancelar</button>
-              </div>
-            </form>
+          <div id="chat-empty-placeholder" class="chat-placeholder">
+            <div class="placeholder-content">
+              <span>🤖</span>
+              <h3>Nenhum Agente Selecionado</h3>
+              <p>Por favor, selecione um modelo de agente no topo para liberar as ferramentas de comando e aprendizado.</p>
+            </div>
           </div>
 
-          <div class="table-container" style="margin-top:20px;">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Categoria</th>
-                  <th>Problema / Regra</th>
-                  <th>Palavras Chave</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="tbody-treinamentos">
-                <tr>
-                  <td colspan="5" class="text-center">Carregando...</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="chat-playground-wrapper" id="chat-active-interface" style="display: none;">
+            <!-- Coluna 1: Chat de Teste -->
+            <div class="chat-main">
+              <div class="chat-header">
+                <div class="chat-status">
+                  <span class="status-dot"></span>
+                  <span id="chat-agente-status">Agente Pronto</span>
+                </div>
+                <!-- NOVO: Botão de Habilitar Voz / Chat-only -->
+                <div class="voice-toggle-chat">
+                  <span class="text-mini">Modo de Voz</span>
+                  <label class="switch-mini">
+                    <input type="checkbox" id="chat-voice-enabled" checked>
+                    <span class="slider-round"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div id="agente-comportamento-card" class="agente-comportamento-card" style="display: none;">
+                <div class="comportamento-icon">🧠</div>
+                <div class="comportamento-info" style="flex:1;">
+                  <strong id="agente-nome-display">Agente</strong>
+                  <p id="agente-comportamento-texto">Nenhum comportamento definido.</p>
+                </div>
+                <button class="btn-icon" onclick="editarAgenteSelecionado()" title="Editar Agente">✏️</button>
+              </div>
+
+              <div id="chat-container" class="chat-messages compact">
+                <div class="msg-bubble system">
+                  <div class="avatar">🤖</div>
+                  <div class="content">Central de Comando ativa. Teste as regras configuradas abaixo ou faça perguntas técnicas.</div>
+                </div>
+              </div>
+
+              <div class="chat-input-area compact">
+                <div class="input-wrapper">
+                  <button id="btn-voice-chat" class="btn-tool-chat" onclick="iniciarGravacaoChat()">
+                    <span id="mic-icon">🎤</span>
+                  </button>
+                  <textarea id="texto-chat-input" placeholder="Envie um comando ou pergunte algo..." rows="1"></textarea>
+                  <button id="btn-enviar-chat" class="btn-send-play" onclick="enviarMensagemChat()">
+                    <span>🚀</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Coluna 2: Centro de Treinamento (Tabs na lateral) -->
+            <aside class="chat-sidebar training-active">
+              <div class="sidebar-tabs">
+                <button class="tab-mini active" onclick="switchSidebarTab('regras')">🎭 Regras</button>
+                <button class="tab-mini" onclick="switchSidebarTab('conhecimento')">📚 Treino</button>
+                <button class="tab-mini" onclick="switchSidebarTab('sugestoes')">💡 Sugestões</button>
+                <button class="tab-mini" onclick="switchSidebarTab('aprendizados')">🧠 Lições</button>
+              </div>
+
+              <div id="side-pane-regras" class="sidebar-pane">
+                <h5>Regras de Comportamento</h5>
+                <div class="side-form">
+                  <textarea id="regra-instrucao-side" rows="2" placeholder="Ex: Seja muito formal..."></textarea>
+                  <button class="btn-add-mini" onclick="salvarRegraComportamentoRapido()">Adicionar Regra</button>
+                </div>
+                <div id="regras-ativas-mini" class="mini-list-scroll">
+                  <!-- Populado via JS -->
+                </div>
+              </div>
+
+              <div id="side-pane-conhecimento" class="sidebar-pane" style="display:none;">
+                <h5>Ensinar Resposta Técnica</h5>
+                <div class="side-form">
+                  <input type="text" id="treino-pergunta-side" placeholder="Pergunta...">
+                  <textarea id="treino-resposta-side" rows="2" placeholder="Resposta da IA..."></textarea>
+                  <button class="btn-add-mini" onclick="salvarTreinamentoRapido()">Treinar Resposta</button>
+                </div>
+                <div id="lista-problemas-mini" class="mini-list-scroll">
+                  <!-- Populado via JS -->
+                </div>
+              </div>
+
+              <div id="side-pane-sugestoes" class="sidebar-pane" style="display:none;">
+                <h5>Sugestões da IA (Pense por si)</h5>
+                <p class="text-muted small">A IA analisa o histórico e sugere novos conhecimentos.</p>
+                <button class="btn-add-mini" onclick="gerarSugestoesIA()">Gerar Novas Sugestões</button>
+                <div id="lista-sugestoes-ia" class="mini-list-scroll">
+                  <!-- Populado via JS -->
+                </div>
+              </div>
+
+              <div id="side-pane-aprendizados" class="sidebar-pane" style="display:none;">
+                <h5>Erros e Melhorias</h5>
+                <div id="lista-aprendizados-mini" class="mini-list-scroll">
+                  <p class="text-muted">Processando aprendizados...</p>
+                </div>
+                <div class="stat-mini">Lições: <span id="stat-licoes-side">0</span></div>
+              </div>
+            </aside>
           </div>
         </section>
 
@@ -637,6 +607,49 @@
     </div>
   </div>
 
-  <script src="script.js?v=2"></script>
+  <!-- Modal de Agente -->
+  <div id="modal-agente" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="modal-close" onclick="fecharModalAgente()">&times;</span>
+      <h3 id="modal-agente-titulo">👤 Novo Agente</h3>
+      <div class="side-form" style="max-height: 80vh; overflow-y: auto; padding: 10px;">
+        <div class="form-group">
+          <label>Nome do Agente</label>
+          <input type="text" id="agente-nome" placeholder="Ex: Roberto Suporte">
+        </div>
+        <div class="form-group">
+          <label>🧠 Comportamento e proposito do Agente</label>
+          <textarea id="agente-instrucao" rows="3" placeholder="Ex: Seja um especialista técnico focado em clareza..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Voz (Gênero ou ID ElevenLabs)</label>
+          <input type="text" id="agente-voz" list="opcoes-vozes-agente" placeholder="female, male ou ID...">
+          <datalist id="opcoes-vozes-agente">
+            <option value="female">Feminino</option>
+            <option value="male">Masculino</option>
+          </datalist>
+        </div>
+        <div class="form-group">
+          <label>Velocidade (0.5 a 2.0)</label>
+          <input type="number" id="agente-velocidade" step="0.1" value="1.0">
+        </div>
+        <div class="form-group">
+          <label>Saudação</label>
+          <textarea id="agente-saudacao" rows="2"></textarea>
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <input type="checkbox" id="agente-finalizado" style="width: auto;">
+          <label for="agente-finalizado" style="margin: 0; font-weight: bold; color: #4338ca;">Modelo Finalizado</label>
+        </div>
+        <div class="form-actions">
+          <input type="hidden" id="agente-id-edit">
+          <button class="btn btn-primary" onclick="salvarAgente()">Salvar Agente</button>
+          <button class="btn btn-secondary" onclick="fecharModalAgente()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js?v=3"></script>
 </body>
 </html>
